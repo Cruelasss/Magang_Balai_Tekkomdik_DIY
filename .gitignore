@@ -1,0 +1,35 @@
+# Dependency folders (Jangan di-upload karena berat banget)
+node_modules/
+jspm_packages/
+
+# Environment variables (Sangat Rahasia! Jangan sampai orang lain tahu password DB kamu)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Folder Uploads (File PDF pendaftar cukup ada di komputer/server kamu saja)
+backend/uploads/
+uploads/
+
+# Build folders (Hasil kompilasi frontend)
+dist/
+build/
+out/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Editor folders (Setingan VS Code/Webstorm masing-masing orang)
+.vscode/
+.idea/
+.DS_Store
+
+# Local database (Jika kamu pakai SQLite)
+*.db
+*.sqlite

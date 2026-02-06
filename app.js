@@ -1,33 +1,33 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path'); // Tambahkan ini untuk pathing folder
 require('dotenv').config();
 
 // 1. IMPORT SEMUA ROUTES
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const logbookRoutes = require('./routes/logbookRoutes');
-const publicRoutes = require('./routes/publicRoutes'); // Tambahkan ini untuk registrasi publik
+const publicRoutes = require('./routes/publicRoutes');
+const applicationRoutes = require('./routes/applicationRoutes'); // <--- Tambahkan rute baru ini
 
 const app = express();
 
-// 2. CEK DEBUGGING (Opsional, bisa dihapus jika sudah yakin jalan)
-console.log('--- DEBUGGING ROUTES ---');
-console.log('Cek Auth Routes:', typeof authRoutes);
-console.log('Cek Admin Routes:', typeof adminRoutes);
-console.log('Cek Logbook Routes:', typeof logbookRoutes);
-console.log('Cek Public Routes:', typeof publicRoutes);
-console.log('------------------------');
-
-// 3. MIDDLEWARE
+// 2. MIDDLEWARE
 app.use(cors());
 app.use(express.json());
 
-// 4. GUNAKAN ROUTES (DAFTAR ENDPOINT)
-app.use('/api/auth', authRoutes);       // Login
-app.use('/api/admin', adminRoutes);     // Statistik Dashboard & Manajemen
-app.use('/api/logbook', logbookRoutes); // Laporan Harian (GPS & Aktivitas)
-app.use('/api/public', publicRoutes);   // Pendaftaran Mandiri Peserta Baru
+// 3. STATIC FOLDER (Sangat Penting!)
+// Ini supaya file PDF yang di-upload bisa dibuka lewat browser/dashboard
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// 4. GUNAKAN ROUTES (DAFTAR ENDPOINT)
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/logbook', logbookRoutes);
+app.use('/api/public', publicRoutes);
+app.use('/api/applications', applicationRoutes); // <--- Endpoint untuk submit pendaftaran + file
+
+// 5. DEFAULT ROUTE
 app.get('/', (req, res) => {
     res.json({
         message: "Selamat Datang di API TEKKOMDIK INTERN-GATE",
@@ -39,4 +39,5 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`✅ Server meluncur di http://localhost:${PORT}`);
+    console.log(`📂 Folder uploads siap diakses di http://localhost:${PORT}/uploads`);
 });

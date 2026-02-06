@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-
+import Register from './pages/Register';
 // Fungsi Satpam: Cek apakah user sudah login
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -15,6 +15,7 @@ function App() {
   return (
     <Router>
       <Routes>
+<Route path="/register" element={<Register />} />
         {/* Halaman Pertama yang muncul adalah Login */}
         <Route path="/" element={<Login />} />
         
