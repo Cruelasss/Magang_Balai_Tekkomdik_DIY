@@ -16,6 +16,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
 // 3. STATIC FOLDER (Sangat Penting!)
 // Ini supaya file PDF yang di-upload bisa dibuka lewat browser/dashboard
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

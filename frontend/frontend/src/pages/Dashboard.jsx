@@ -1,34 +1,52 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
+import * as XLSX from 'xlsx';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend 
+  PieChart, Pie, Cell, Legend, CartesianGrid, AreaChart, Area
 } from 'recharts';
-import { Users, GraduationCap, LayoutDashboard, LogOut, Search, School, CheckCircle, XCircle } from 'lucide-react';
+import { 
+  Users, GraduationCap, LayoutDashboard, LogOut, Search, 
+  School, CheckCircle, XCircle, FileText, Download, Trash2, Eye, X, BookOpen, MapPin, ExternalLink, UserPlus, User, TrendingUp
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
+  // --- STATES ---
   const [stats, setStats] = useState({ total: 0, status: [], jurusan: [] });
+  const [trends, setTrends] = useState({ yearly: [], monthly: [] });
   const [applicants, setApplicants] = useState([]);
+  const [mentors, setMentors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  
+  // MODAL UTAMA (One-Stop Control)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('profil'); 
+  const [selectedData, setSelectedData] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [logRange, setLogRange] = useState('Semua');
+
+  const [plotForm, setPlotForm] = useState({ mentor_id: '', start: '', end: '' });
+
   const navigate = useNavigate();
 
-  // Fungsi untuk mengambil semua data (Statistik + Tabel)
+  // --- AMBIL DATA ---
   const fetchAllData = async () => {
     try {
-      const [statsRes, listRes] = await Promise.all([
-        api.get('/admin/stats'),
-        api.get('/admin/applications')
+      const [statsRes, listRes, mentorRes, trendRes] = await Promise.all([
+        api.get('/admin/stats').catch(() => null),
+        api.get('/admin/applications').catch(() => null),
+        api.get('/admin/mentors').catch(() => null),
+        api.get('/admin/stats/trends').catch(() => ({ data: { yearly: [], monthly: [] } }))
       ]);
 
-      setStats({
-        total: statsRes.data.total,
-        status: statsRes.data.data.status,
-        jurusan: statsRes.data.data.jurusan
-      });
-      setApplicants(listRes.data);
+      if (statsRes) setStats({ total: statsRes.data.total, status: statsRes.data.data.status, jurusan: statsRes.data.data.jurusan });
+      if (listRes) setApplicants(listRes.data);
+      if (mentorRes) setMentors(mentorRes.data);
+      if (trendRes) setTrends(trendRes.data);
     } catch (err) {
-      console.error("Gagal mengambil data:", err);
+      console.error("Gagal sinkronisasi data:", err);
     }
   };
 
@@ -36,177 +54,296 @@ const Dashboard = () => {
     fetchAllData();
   }, []);
 
-  // Fungsi Update Status (Approve/Reject)
-  const handleStatusUpdate = async (id, newStatus) => {
-    if (!window.confirm(`Yakin mau mengubah status menjadi ${newStatus}?`)) return;
-    
+  // --- FUNGSI MODAL & LOGBOOK ---
+  const openControlCenter = async (app, tab = 'profil') => {
+    setSelectedData(app);
+    setActiveTab(tab);
+    setIsModalOpen(true);
+    setPlotForm({ 
+        mentor_id: app.mentor_id || '', 
+        start: app.tanggal_mulai || '', 
+        end: app.tanggal_selesai || '' 
+    });
+    if (tab === 'logbook') fetchLogbook(app.user_id, 'Semua');
+  };
+
+  const fetchLogbook = async (userId, range) => {
+    setLogRange(range);
     try {
-      await api.put(`/admin/applications/${id}/status`, { status: newStatus });
-      // Setelah update berhasil, tarik data terbaru agar grafik & tabel sinkron
-      fetchAllData();
+      const res = await api.get(`/logbooks/participant/${userId}?range=${range.toLowerCase()}`);
+      setLogs(res.data);
     } catch (err) {
-      alert("Gagal update status. Pastikan backend sudah siap!");
+      setLogs([]);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
+  const validateLog = async (id, status) => {
+    try {
+      await api.put(`/logbooks/validate/${id}`, { status });
+      fetchLogbook(selectedData.user_id, logRange);
+    } catch (err) {
+      alert("Gagal validasi!");
+    }
   };
 
-  const filteredApplicants = applicants.filter(app => 
-    app.nama?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.instansi?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // --- FUNGSI AKSI ---
+  const handleStatusUpdate = async (id, newStatus) => {
+    if (!window.confirm(`Ubah status menjadi ${newStatus}?`)) return;
+    try {
+      await api.put(`/admin/applications/${id}/status`, { status: newStatus });
+      fetchAllData();
+      if(isModalOpen) setIsModalOpen(false);
+    } catch (err) { alert("Gagal update status!"); }
+  };
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+  const handlePlotting = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/admin/applications/${selectedData.id}/assign-mentor`, plotForm);
+      alert("Plotting & Approval Berhasil!");
+      setIsModalOpen(false);
+      fetchAllData();
+    } catch (err) { alert(err.response?.data?.message || "Gagal simpan plotting!"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Hapus data pendaftar ini?")) {
+      await api.delete(`/admin/applications/${id}`);
+      fetchAllData();
+    }
+  };
+
+  const exportToExcel = () => {
+    const dataToExport = filteredApplicants.map(app => ({
+      "Nama": app.nama, "Instansi": app.instansi, "Mulai": app.tanggal_mulai, "Selesai": app.tanggal_selesai, "Status": app.status
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+    XLSX.writeFile(workbook, "Data_Peserta_Magang.xlsx");
+  };
+
+  // --- LOGIKA FILTER & WARNA ---
+  const filteredApplicants = applicants.filter(app => {
+    const matchesSearch = app.nama?.toLowerCase().includes(searchTerm.toLowerCase()) || app.instansi?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || app.status?.toLowerCase() === statusFilter.toLowerCase();
+    return matchesSearch && matchesStatus;
+  });
+
+  // Fungsi Warna untuk Grafik Pie & Badge
+  const getStatusColor = (status) => {
+    const s = status?.toUpperCase();
+    if (s === 'APPROVED') return '#10b981'; // Hijau
+    if (s === 'SELESAI') return '#ef4444';  // Merah
+    if (s === 'PENDING') return '#f59e0b';  // Kuning
+    return '#3b82f6'; // Default Biru
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex font-sans">
       <div className="flex-1 p-4 md:p-8">
         
         {/* HEADER */}
         <div className="flex justify-between items-center mb-10">
           <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-800">
-            <LayoutDashboard className="text-blue-600" size={28} /> 
-            Monitoring Intern-Gate
+            <LayoutDashboard className="text-blue-600" size={28} /> Monitoring Intern-Gate
           </h1>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-200 hover:bg-red-50 hover:text-red-600 transition-all font-semibold text-sm text-gray-600"
-          >
-            <LogOut size={18} /> Logout
-          </button>
+          <button onClick={() => {localStorage.removeItem('token'); navigate('/')}} className="bg-white px-4 py-2 rounded-xl border font-bold text-sm hover:text-red-600 transition-all shadow-sm">Logout</button>
         </div>
 
-        {/* STATS CARD */}
+        {/* STATS CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center transition-transform hover:scale-105">
-            <div className="bg-blue-100 p-4 rounded-xl mr-4 text-blue-600">
-              <Users size={32} />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Total Pendaftar</p>
-              <h3 className="text-3xl font-extrabold text-gray-800">{stats.total}</h3>
-            </div>
+            <div className="bg-blue-100 p-4 rounded-xl mr-4 text-blue-600"><Users size={32} /></div>
+            <div><p className="text-sm text-gray-500 font-medium">Total Pendaftar</p><h3 className="text-3xl font-extrabold text-gray-800">{stats.total}</h3></div>
           </div>
         </div>
 
-        {/* CHARTS SECTION */}
+        {/* ANALISIS TREN TAHUN & BULAN */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-            <div className="flex items-center gap-2 mb-6 text-gray-700">
-              <GraduationCap className="text-blue-500" />
-              <h2 className="text-lg font-bold">Top 5 Jurusan Terbanyak</h2>
-            </div>
-            <div className="h-72">
+            <div className="flex items-center gap-2 mb-6"><TrendingUp className="text-blue-600" size={20} /><h2 className="text-lg font-bold text-gray-700">Tren Bulanan</h2></div>
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.jurusan}>
-                  <XAxis dataKey="jurusan" hide />
-                  <YAxis />
-                  <Tooltip cursor={{fill: '#f8fafc'}} />
-                  <Bar dataKey="jumlah" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
-                </BarChart>
+                <AreaChart data={trends.monthly}>
+                  <defs><linearGradient id="colorM" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
+                  <XAxis dataKey="bulan" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
+                  <Tooltip borderStyle={{borderRadius: '10px'}} />
+                  <Area type="monotone" dataKey="jumlah" stroke="#3b82f6" fillOpacity={1} fill="url(#colorM)" />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 mb-6"><TrendingUp className="text-green-600" size={20} /><h2 className="text-lg font-bold text-gray-700">Laporan Tahunan</h2></div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trends.yearly}><XAxis dataKey="tahun" axisLine={false} tickLine={false} /><Tooltip cursor={{fill: '#f8fafc'}} /><Bar dataKey="jumlah" fill="#10b981" radius={[10, 10, 0, 0]} /></BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
 
+        {/* GRAFIK JURUSAN & STATUS */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-bold mb-6 text-gray-700">Top 5 Jurusan</h2>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.jurusan}><XAxis dataKey="jurusan" hide /><YAxis /><Tooltip /><Bar dataKey="jumlah" fill="#3b82f6" radius={[5, 5, 0, 0]} /></BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold mb-6 text-gray-700">Persentase Status</h2>
-            <div className="h-72">
+            <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie 
-                    data={stats.status} 
-                    dataKey="jumlah" 
-                    nameKey="status" 
-                    cx="50%" cy="50%" 
-                    outerRadius={80} 
-                    paddingAngle={5}
-                    innerRadius={60}
-                  >
-                    {stats.status.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
+                  <Pie data={stats.status} dataKey="jumlah" nameKey="status" cx="50%" cy="50%" outerRadius={70} innerRadius={50} paddingAngle={5}>
+                    {stats.status.map((entry, index) => <Cell key={index} fill={getStatusColor(entry.status)} />)}
                   </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36}/>
+                  <Tooltip /><Legend verticalAlign="bottom" />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* DATA TABLE */}
+        {/* TABEL UTAMA */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
-            <h2 className="text-lg font-bold text-gray-800">Daftar Pendaftar Magang</h2>
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Cari nama atau instansi..." 
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="p-6 border-b flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex bg-gray-100 p-1 rounded-xl overflow-x-auto">
+              {['All', 'Pending', 'Approved', 'Rejected', 'SELESAI'].map(t => (
+                <button key={t} onClick={() => setStatusFilter(t)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFilter === t ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}>{t}</button>
+              ))}
+            </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              <button onClick={exportToExcel} className="p-2 bg-green-600 text-white rounded-xl shadow-sm hover:bg-green-700 transition-all"><Download size={18}/></button>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                <input type="text" placeholder="Cari pendaftar..." className="w-full pl-10 pr-4 py-2 border rounded-xl text-sm outline-none" onChange={(e) => setSearchTerm(e.target.value)} />
+              </div>
             </div>
           </div>
+
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50/50 text-gray-500 text-xs uppercase font-bold tracking-wider">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold tracking-widest">
                 <tr>
-                  <th className="p-5">Nama Lengkap</th>
-                  <th className="p-5">Asal Instansi</th>
-                  <th className="p-5">Status</th>
-                  <th className="p-5">Aksi</th>
+                  <th className="p-5">Peserta</th>
+                  <th className="p-5">Instansi</th>
+                  <th className="p-5 text-center">Mulai</th>
+                  <th className="p-5 text-center">Selesai</th>
+                  <th className="p-5 text-center">Status</th>
+                  <th className="p-5 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 text-sm">
-                {filteredApplicants.length > 0 ? (
-                  filteredApplicants.map((app) => (
-                    <tr key={app.id} className="hover:bg-blue-50/30 transition-colors">
-                      <td className="p-5 font-semibold text-gray-700">{app.nama}</td>
-                      <td className="p-5 text-gray-600 flex items-center gap-2 text-xs">
-                        <School size={14} className="text-gray-400" /> {app.instansi}
-                      </td>
-                      <td className="p-5">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                          app.status === 'Approved' ? 'bg-green-100 text-green-700' : 
-                          app.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {app.status}
-                        </span>
-                      </td>
-                      <td className="p-5">
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => handleStatusUpdate(app.id, 'Approved')}
-                            className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm"
-                            title="Approve"
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-                          <button 
-                            onClick={() => handleStatusUpdate(app.id, 'Rejected')}
-                            className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                            title="Reject"
-                          >
-                            <XCircle size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="p-10 text-center text-gray-400 italic">Data tidak ditemukan...</td>
+                {filteredApplicants.map(app => (
+                  <tr key={app.id} className="hover:bg-blue-50/30 transition-colors">
+                    <td className="p-5"><button onClick={() => openControlCenter(app, 'logbook')} className="font-bold text-blue-600 hover:underline">{app.nama}</button></td>
+                    <td className="p-5 text-gray-600">{app.instansi}</td>
+                    <td className="p-5 text-center font-medium">{app.tanggal_mulai ? new Date(app.tanggal_mulai).toLocaleDateString('id-ID') : '-'}</td>
+                    <td className="p-5 text-center font-medium">{app.tanggal_selesai ? new Date(app.tanggal_selesai).toLocaleDateString('id-ID') : '-'}</td>
+                    <td className="p-5 text-center">
+                      {/* --- WARNA STATUS BADGE --- */}
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        app.status?.toUpperCase() === 'APPROVED' ? 'bg-green-100 text-green-700' : 
+                        app.status?.toUpperCase() === 'SELESAI' ? 'bg-red-100 text-red-700' : 
+                        app.status?.toUpperCase() === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {app.status}
+                      </span>
+                    </td>
+                    <td className="p-5">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => openControlCenter(app, 'profil')} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm"><Eye size={16}/></button>
+                        {app.berkas && <a href={`http://localhost:5000/uploads/${app.berkas}`} target="_blank" rel="noreferrer" className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all shadow-sm"><FileText size={16}/></a>}
+                        
+                        {/* Tombol Approve/Reject Cepat Hanya Jika Status Pending */}
+                        {app.status?.toUpperCase() === 'PENDING' && (
+                          <><button onClick={() => handleStatusUpdate(app.id, 'Approved')} className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all shadow-sm"><CheckCircle size={16}/></button>
+                          <button onClick={() => handleStatusUpdate(app.id, 'Rejected')} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm"><XCircle size={16}/></button></>
+                        )}
+                        
+                        <button onClick={() => handleDelete(app.id)} className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm"><Trash2 size={16}/></button>
+                      </div>
+                    </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
+
+        {/* MODAL PUSAT KENDALI (Profil, Logbook, Plotting) */}
+        {isModalOpen && selectedData && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-[32px] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in duration-200">
+              <div className="bg-blue-600 p-6 text-white flex justify-between items-center">
+                <div><h2 className="text-xl font-bold">{selectedData.nama}</h2><p className="text-xs opacity-80">{selectedData.instansi}</p></div>
+                <button onClick={() => setIsModalOpen(false)} className="bg-white/20 p-2 rounded-full"><X size={20}/></button>
+              </div>
+              <div className="flex bg-gray-50 border-b px-6 overflow-x-auto">
+                {[
+                  { id: 'profil', label: 'Profil & Berkas', icon: <User size={14}/> },
+                  { id: 'logbook', label: 'Logbook Laporan', icon: <BookOpen size={14}/> },
+                  { id: 'plotting', label: 'Plotting Mentor', icon: <UserPlus size={14}/> }
+                ].map(t => (
+                  <button key={t.id} onClick={() => { setActiveTab(t.id); if(t.id === 'logbook') fetchLogbook(selectedData.user_id, 'Semua'); }} className={`flex items-center gap-2 px-6 py-4 text-xs font-bold transition-all border-b-2 whitespace-nowrap ${activeTab === t.id ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>{t.icon} {t.label}</button>
+                ))}
+              </div>
+              <div className="p-8 overflow-y-auto flex-1 bg-white">
+                {activeTab === 'profil' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-2xl border"><p className="text-[10px] font-bold text-gray-400 uppercase">Email</p><p className="font-semibold">{selectedData.email}</p></div>
+                      <div className="p-4 bg-gray-50 rounded-2xl border"><p className="text-[10px] font-bold text-gray-400 uppercase">Jurusan</p><p className="font-semibold">{selectedData.jurusan}</p></div>
+                    </div>
+                    {selectedData.berkas && <a href={`http://localhost:5000/uploads/${selectedData.berkas}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-indigo-50 text-indigo-700 p-5 rounded-3xl font-bold w-fit hover:bg-indigo-600 hover:text-white transition-all shadow-sm"><FileText size={24}/> Buka PDF Berkas</a>}
+                  </div>
+                )}
+                {activeTab === 'logbook' && (
+                  <div className="space-y-4">
+                    <div className="flex gap-2 mb-4">
+                      {['Semua', 'Harian', 'Mingguan', 'Bulanan'].map(r => (
+                        <button key={r} onClick={() => fetchLogbook(selectedData.user_id, r)} className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${logRange === r ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{r}</button>
+                      ))}
+                    </div>
+                    {logs.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {logs.map(log => (
+                          <div key={log.id} className="p-5 border rounded-[24px] bg-gray-50 group hover:border-orange-300 transition-all">
+                            <div className="flex justify-between items-start mb-3">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase">📅 {new Date(log.tanggal).toLocaleDateString('id-ID')}</span>
+                              <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase ${log.status_validasi === 'Valid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{log.status_validasi || 'PENDING'}</span>
+                            </div>
+                            <p className="text-sm text-gray-700 italic">"{log.aktivitas}"</p>
+                            <div className="flex justify-between items-center border-t pt-4 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex gap-3">{log.bukti_url && <a href={log.bukti_url} target="_blank" rel="noreferrer" className="text-blue-600 text-[10px] font-bold flex items-center gap-1"><ExternalLink size={12}/> Bukti</a>}</div>
+                              <div className="flex gap-1"><button onClick={() => validateLog(log.id, 'Valid')} className="p-2 bg-green-100 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-colors"><CheckCircle size={14}/></button><button onClick={() => validateLog(log.id, 'Invalid')} className="p-2 bg-red-100 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-colors"><XCircle size={14}/></button></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="text-center py-10 text-gray-400 italic">Belum ada aktivitas.</p>}
+                  </div>
+                )}
+                {activeTab === 'plotting' && (
+                  <form onSubmit={handlePlotting} className="max-w-2xl space-y-6">
+                    <div className="bg-blue-50 p-6 rounded-[28px] border border-blue-100 flex items-center gap-4 mb-4"><div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg"><UserPlus size={24}/></div><div><p className="text-xs text-blue-600 font-bold uppercase tracking-wider">Pengaturan Mentor & Masa Magang</p></div></div>
+                    <div className="space-y-4">
+                      <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Pilih Pembimbing</label><select required value={plotForm.mentor_id} className="w-full p-4 bg-gray-50 border border-gray-100 rounded-[20px] text-sm focus:ring-2 focus:ring-blue-500 outline-none" onChange={(e) => setPlotForm({...plotForm, mentor_id: e.target.value})}><option value="">-- Pilih Mentor --</option>{mentors.map(m => (<option key={m.id} value={m.id} disabled={m.beban_kerja >= m.max_kuota}>{m.nama_pembimbing} (Beban: {m.beban_kerja}/{m.max_kuota})</option>))}</select></div>
+                      <div className="grid grid-cols-2 gap-4"><div><label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Mulai</label><input type="date" required value={plotForm.start} className="w-full p-4 bg-gray-50 border rounded-[20px] text-sm" onChange={(e) => setPlotForm({...plotForm, start: e.target.value})} /></div><div><label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Selesai</label><input type="date" required value={plotForm.end} className="w-full p-4 bg-gray-50 border rounded-[20px] text-sm" onChange={(e) => setPlotForm({...plotForm, end: e.target.value})} /></div></div>
+                    </div>
+                    <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-[22px] font-bold hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all flex items-center justify-center gap-2"><CheckCircle size={20}/> Simpan & Approve</button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
