@@ -10,7 +10,7 @@ if (adminController && adminController.getStats && authMiddleware) {
 router.get('/stats', adminController.getStats);
 // Tambahkan baris ini di bawah rute /stats
 router.get('/applications', authMiddleware, adminController.getAllApplications);
-
+router.delete('/applications/:id', adminController.deleteApplication);
 router.put('/applications/:id/status', adminController.updateStatus);
 
 } else {

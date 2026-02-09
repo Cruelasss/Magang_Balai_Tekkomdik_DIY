@@ -31,6 +31,16 @@ exports.getStats = async (req, res) => {
     }
 };
 
+exports.deleteApplication = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.execute("DELETE FROM applications WHERE id = ?", [id]);
+        res.json({ message: "Data berhasil dihapus" });
+    } catch (err) {
+        res.status(500).json({ message: "Gagal menghapus data dari database" });
+    }
+};
+
 exports.getAllApplications = async (req, res) => {
     try {
         const [rows] = await db.execute('SELECT * FROM applications ORDER BY created_at DESC');

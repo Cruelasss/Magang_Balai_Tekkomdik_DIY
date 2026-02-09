@@ -30,7 +30,7 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  // --- FUNGSI HITUNG TREND DENGAN FILTER TAHUN ---
+  // --- FUNGSI HITUNG TREND DARI TANGGAL ---
   const calculateTrends = (data, targetYear) => {
     const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
     const monthlyMap = {};
@@ -42,12 +42,9 @@ const Dashboard = () => {
         const monthLabel = months[date.getMonth()];
         const yearLabel = date.getFullYear().toString();
 
-        // Hitung Bulanan berdasarkan Tahun yang dipilih
         if (yearLabel === targetYear) {
           monthlyMap[monthLabel] = (monthlyMap[monthLabel] || 0) + 1;
         }
-
-        // Hitung Tahunan (Akumulasi)
         yearlyMap[yearLabel] = (yearlyMap[yearLabel] || 0) + 1;
       }
     });
@@ -123,9 +120,10 @@ const Dashboard = () => {
 
   // --- FUNGSI AKSI ---
   const handleStatusUpdate = async (id, newStatus) => {
+    const dbStatus = newStatus === 'Aktif' ? 'Aktif' : newStatus;
     if (!window.confirm(`Ubah status menjadi ${newStatus}?`)) return;
     try {
-      await api.put(`/admin/applications/${id}/status`, { status: newStatus });
+      await api.put(`/admin/applications/${id}/status`, { status: dbStatus });
       fetchAllData();
       if(isModalOpen) setIsModalOpen(false);
     } catch (err) { alert("Gagal update status!"); }
@@ -141,10 +139,16 @@ const Dashboard = () => {
     } catch (err) { alert(err.response?.data?.message || "Gagal simpan plotting!"); }
   };
 
+  // --- FITUR DELETE (FIXED) ---
   const handleDelete = async (id) => {
-    if (window.confirm("Hapus data pendaftar ini?")) {
-      await api.delete(`/admin/applications/${id}`);
-      fetchAllData();
+    if (window.confirm("Apakah Anda yakin ingin menghapus data pendaftar ini secara permanen?")) {
+      try {
+        await api.delete(`/admin/applications/${id}`);
+        alert("Data berhasil dihapus!");
+        fetchAllData(); // Refresh data tabel
+      } catch (err) {
+        alert(err.response?.data?.message || "Gagal menghapus data!");
+      }
     }
   };
 
@@ -160,11 +164,12 @@ const Dashboard = () => {
 
   // --- LOGIKA FILTER ---
   const filteredApplicants = applicants.filter(app => {
-    const matchesSearch = app.nama?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          app.instansi?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (app.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (app.instansi || "").toLowerCase().includes(searchTerm.toLowerCase());
+    
     const dbStatus = app.status; 
     let matchesStatus = false;
-
+    
     if (statusFilter === 'All') {
       matchesStatus = true;
     } else if (statusFilter === 'Aktif') {
@@ -174,6 +179,7 @@ const Dashboard = () => {
     } else {
       matchesStatus = dbStatus === statusFilter;
     }
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -224,16 +230,13 @@ const Dashboard = () => {
                   {dynamicTrends.yearly.map(y => (
                     <option key={y.tahun} value={y.tahun}>{y.tahun}</option>
                   ))}
-                  {!dynamicTrends.yearly.find(y => y.tahun === new Date().getFullYear().toString()) && (
-                     <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
-                  )}
                 </select>
               </div>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={dynamicTrends.monthly}>
-                  <defs><linearGradient id="colorM" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
+                  <defs><linearGradient id="colorM" x1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient></defs>
                   <XAxis dataKey="bulan" axisLine={false} tickLine={false} tick={{fontSize: 10}} />
                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10}} />
                   <Tooltip borderStyle={{borderRadius: '10px'}} />
@@ -335,7 +338,13 @@ const Dashboard = () => {
                             <button onClick={() => handleStatusUpdate(app.id, 'Ditolak')} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Tolak"><XCircle size={16}/></button>
                           </>
                         )}
-                        <button onClick={() => handleDelete(app.id)} className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm"><Trash2 size={16}/></button>
+                        {/* FITUR DELETE - DIPANGGIL DI SINI */}
+                        <button 
+                          onClick={() => handleDelete(app.id)} 
+                          className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                        >
+                          <Trash2 size={16}/>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -388,10 +397,6 @@ const Dashboard = () => {
                               <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase ${log.status_validasi === 'Valid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{log.status_validasi || 'PENDING'}</span>
                             </div>
                             <p className="text-sm text-gray-700 italic">"{log.aktivitas}"</p>
-                            <div className="flex justify-between items-center border-t pt-4 mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="flex gap-3">{log.bukti_url && <a href={log.bukti_url} target="_blank" rel="noreferrer" className="text-blue-600 text-[10px] font-bold flex items-center gap-1"><ExternalLink size={12}/> Bukti</a>}</div>
-                              <div className="flex gap-1"><button onClick={() => validateLog(log.id, 'Valid')} className="p-2 bg-green-100 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-colors"><CheckCircle size={14}/></button><button onClick={() => validateLog(log.id, 'Invalid')} className="p-2 bg-red-100 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-colors"><XCircle size={14}/></button></div>
-                            </div>
                           </div>
                         ))}
                       </div>
