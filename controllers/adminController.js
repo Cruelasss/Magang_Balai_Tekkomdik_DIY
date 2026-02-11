@@ -60,3 +60,56 @@ exports.updateStatus = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// adminController.js - Tambahkan ini
+exports.addMentor = async (req, res) => {
+    const { nama_pembimbing, divisi, max_kuota } = req.body;
+    try {
+        await db.execute(
+            'INSERT INTO mentors (nama_pembimbing, divisi, max_kuota) VALUES (?, ?, ?)',
+            [nama_pembimbing, divisi || 'Umum', max_kuota || 5]
+        );
+        res.status(201).json({ message: "Mentor berhasil ditambahkan" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+exports.deleteMentor = async (req, res) => {
+    try {
+        await db.execute('DELETE FROM mentors WHERE id = ?', [req.params.id]);
+        res.json({ message: "Mentor berhasil dihapus" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+
+// adminController.js (Cek bagian ini!)
+// adminController.js
+
+exports.getAllMentors = async (req, res) => {
+    try {
+        // PERBAIKAN: Mengganti mentor_id menjadi id_mentor sesuai DB kamu
+        const query = `
+            SELECT 
+                m.id, 
+                m.nama_pembimbing, 
+                m.divisi, 
+                m.max_kuota,
+                (SELECT COUNT(*) FROM applications a 
+                 WHERE a.id_mentor = m.id 
+                 AND (a.status = 'Aktif' OR a.status = 'Approved')) AS beban_kerja
+            FROM mentors m 
+            ORDER BY m.nama_pembimbing ASC
+        `;
+        
+        const [rows] = await db.execute(query);
+        
+        console.log("✅ Berhasil menarik data mentor dengan kolom id_mentor");
+        res.json(rows);
+    } catch (err) {
+        console.error("❌ ERROR DI CONTROLLER:", err.message);
+        res.status(500).json({ message: "Gagal ambil data mentor: " + err.message });
+    }
+};

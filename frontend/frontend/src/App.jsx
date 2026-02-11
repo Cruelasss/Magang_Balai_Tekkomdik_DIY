@@ -1,7 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
 import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Pendaftar from './pages/Pendaftar'; // Halaman baru
+import Peserta from './pages/Peserta';     // Halaman baru
+import Mentors from './pages/Mentors';     // Halaman baru
+import Arsip from './pages/Arsip';         // Halaman baru
+import AdminLayout from './components/AdminLayout';
+
 // Fungsi Satpam: Cek apakah user sudah login
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -15,21 +21,58 @@ function App() {
   return (
     <Router>
       <Routes>
-<Route path="/register" element={<Register />} />
-        {/* Halaman Pertama yang muncul adalah Login */}
+        {/* Halaman Tanpa Sidebar (Auth) */}
         <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         
-        {/* Halaman Dashboard hanya bisa dibuka kalau sudah login */}
+        {/* Halaman Admin (Pakai Sidebar + Protected) */}
         <Route 
-          path="/dashboard" 
+          path="/admin/dashboard" 
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <AdminLayout> <Dashboard /> </AdminLayout>
             </ProtectedRoute>
           } 
         />
         
-        {/* Kalau user ngetik asal, arahkan balik ke Login */}
+        <Route 
+          path="/admin/pendaftaran" 
+          element={
+            <ProtectedRoute>
+              <AdminLayout> <Pendaftar /> </AdminLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/peserta" 
+          element={
+            <ProtectedRoute>
+              <AdminLayout> <Peserta /> </AdminLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/mentors" 
+          element={
+            <ProtectedRoute>
+              <AdminLayout> <Mentors /> </AdminLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/arsip" 
+          element={
+            <ProtectedRoute>
+              <AdminLayout> <Arsip /> </AdminLayout>
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Redirect: Kalau login sukses ke dashboard, kalau typo ke login */}
+        <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
