@@ -129,3 +129,15 @@ exports.getAllMentors = async (req, res) => {
     }
 };
 
+// Di adminController.js
+exports.getPendingLogbookCount = async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            "SELECT COUNT(*) as total FROM logbooks WHERE status_validasi = 'Menunggu verifikasi'"
+        );
+        res.json({ count: rows[0].total });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+

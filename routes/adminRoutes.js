@@ -60,6 +60,18 @@ router.get('/mentors', authMiddleware, async (req, res) => {
     }
 });
 
+// Tambahkan rute ini di dalam file adminRoutes.js
+router.get('/logbook-count', authMiddleware, async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            "SELECT COUNT(*) as total FROM logbooks WHERE status_validasi = 'Menunggu verifikasi'"
+        );
+        res.json({ count: rows[0].total });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 router.post('/mentors', authMiddleware, adminController.addMentor);
 router.delete('/mentors/:id', authMiddleware, adminController.deleteMentor);
 } else {
