@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate untuk navigasi ke logbook
 import { 
   UserPlus, Search, Trash2, Users, Briefcase, 
-  Plus, X, CheckCircle, Info, ExternalLink
+  Plus, X, CheckCircle, Info, ExternalLink, BookOpen
 } from 'lucide-react';
 
 const Mentors = () => {
+  const navigate = useNavigate(); // Inisialisasi navigasi
   const [mentors, setMentors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // State baru untuk Detail Peserta
   const [selectedMentor, setSelectedMentor] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [participants, setParticipants] = useState([]);
@@ -37,12 +38,10 @@ const Mentors = () => {
     }
   };
 
-  // FUNGSI BARU: Ambil peserta berdasarkan ID Mentor
   const handleShowParticipants = async (mentor) => {
     setSelectedMentor(mentor);
     setIsDetailOpen(true);
     try {
-        // Kita panggil data applications, lalu filter yang id_mentor-nya cocok
         const res = await api.get('/admin/applications');
         const allApps = Array.isArray(res.data) ? res.data : [];
         const filtered = allApps.filter(app => app.id_mentor === mentor.id && app.status === 'Aktif');
@@ -51,6 +50,13 @@ const Mentors = () => {
         console.error("Gagal ambil data peserta:", err);
         setParticipants([]);
     }
+  };
+
+  // FUNGSI BARU: Navigasi ke Logbook mahasiswa tertentu
+  const handleViewLogbook = (participantId) => {
+    // Navigasi ke halaman logbook sambil membawa ID peserta
+    // Pastikan di App.js rute logbook kamu sudah benar
+    navigate(`/admin/logbook?participantId=${participantId}`);
   };
 
   const handleAddMentor = async (e) => {
@@ -86,7 +92,7 @@ const Mentors = () => {
 
   return (
     <div className="p-8">
-      {/* HEADER TETAP SAMA */}
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-10">
         <div className="text-left">
           <h1 className="text-2xl font-bold text-gray-800">Manajemen Mentor</h1>
@@ -121,7 +127,6 @@ const Mentors = () => {
                   <Users size={24} />
                 </div>
                 <div className="flex gap-2">
-                    {/* TOMBOL LIHAT PESERTA */}
                     <button 
                       onClick={() => handleShowParticipants(m)}
                       className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-all"
@@ -190,7 +195,7 @@ const Mentors = () => {
         </div>
       )}
 
-      {/* MODAL BARU: DAFTAR PESERTA BIMBINGAN */}
+      {/* MODAL DAFTAR PESERTA + FITUR LOGBOOK */}
       {isDetailOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
           <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -208,7 +213,7 @@ const Mentors = () => {
               {participants.length > 0 ? (
                 <div className="space-y-3">
                   {participants.map((p, index) => (
-                    <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-blue-200 transition-all">
                       <div className="flex items-center gap-4 text-left">
                         <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                           {index + 1}
@@ -218,9 +223,15 @@ const Mentors = () => {
                           <p className="text-[10px] text-gray-500">{p.instansi} • {p.jurusan}</p>
                         </div>
                       </div>
-                      <div className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black rounded-full uppercase">
-                        Aktif
-                      </div>
+                      
+                      {/* TOMBOL LOGBOOK BARU */}
+                      <button 
+                        onClick={() => handleViewLogbook(p.id)}
+                        className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all group/btn shadow-sm"
+                      >
+                        <BookOpen size={14} className="group-hover/btn:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold">Logbook</span>
+                      </button>
                     </div>
                   ))}
                 </div>
