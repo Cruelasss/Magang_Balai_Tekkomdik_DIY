@@ -41,11 +41,26 @@ exports.deleteApplication = async (req, res) => {
     }
 };
 
+// adminController.js
+
 exports.getAllApplications = async (req, res) => {
     try {
+        // 1. LOGIKA OTOMATIS: Update status menjadi 'Selesai' jika masanya sudah habis
+        // CURRENT_DATE akan mengambil tanggal hari ini dari sistem database
+        const autoUpdateQuery = `
+            UPDATE applications 
+            SET status = 'Selesai' 
+            WHERE status = 'Aktif' 
+            AND tgl_selesai < CURRENT_DATE
+        `;
+        await db.execute(autoUpdateQuery);
+
+        // 2. Ambil data yang sudah ter-update
         const [rows] = await db.execute('SELECT * FROM applications ORDER BY created_at DESC');
-        res.json(rows); // Langsung kirim array data
+        
+        res.json(rows);
     } catch (error) {
+        console.error("Gagal sinkronisasi status otomatis:", error.message);
         res.status(500).json({ message: error.message });
     }
 };

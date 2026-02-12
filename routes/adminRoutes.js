@@ -34,10 +34,31 @@ router.put('/applications/:id/assign-mentor', authMiddleware, async (req, res) =
     }
 });
 
+// adminRoutes.js pada rute GET /mentors
 
-    // --- RUTE MANAJEMEN MENTOR (Panggil Fungsi dari Controller) ---
-    // Gunakan fungsi yang sudah kita buat di adminController agar konsisten
-  router.get('/mentors', authMiddleware, adminController.getAllMentors);
+router.get('/mentors', authMiddleware, async (req, res) => {
+    try {
+        // Jalankan update status dulu agar beban kerja akurat
+        await db.execute(`
+            UPDATE applications SET status = 'Selesai' 
+            WHERE status = 'Aktif' AND tgl_selesai < CURRENT_DATE
+        `);
+
+        const query = `
+            SELECT 
+                m.id, m.nama_pembimbing, m.divisi, m.max_kuota,
+                (SELECT COUNT(*) FROM applications a 
+                 WHERE a.id_mentor = m.id 
+                 AND a.status = 'Aktif') AS beban_kerja
+            FROM mentors m 
+            ORDER BY m.nama_pembimbing ASC
+        `;
+        const [rows] = await db.execute(query);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
 
 router.post('/mentors', authMiddleware, adminController.addMentor);
 router.delete('/mentors/:id', authMiddleware, adminController.deleteMentor);
