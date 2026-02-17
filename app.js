@@ -9,6 +9,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const logbookRoutes = require('./routes/logbookRoutes');
 const publicRoutes = require('./routes/publicRoutes');
 const applicationRoutes = require('./routes/applicationRoutes'); // <--- Tambahkan rute baru ini
+const studentRoutes = require('./routes/studentRoutes');
+
 
 const app = express();
 
@@ -22,12 +24,26 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 4. GUNAKAN ROUTES (DAFTAR ENDPOINT)
+app.use('/api/student', studentRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/logbook', logbookRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/applications', applicationRoutes); // <--- Endpoint untuk submit pendaftaran + file
+// 4. GUNAKAN ROUTES
+app.use('/api/student', studentRoutes);
+// ... rute lainnya
 
+// 5. ERROR HANDLING MIDDLEWARE (Tambahkan ini di bawah semua rute)
+// Berfungsi menangkap error jika ada upload yang gagal atau error internal server lainnya
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ 
+        success: false, 
+        message: 'Terjadi kesalahan pada server!',
+        error: err.message 
+    });
+});
 // 5. DEFAULT ROUTE
 app.get('/', (req, res) => {
     res.json({

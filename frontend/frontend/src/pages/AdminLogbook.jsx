@@ -2,27 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import { 
-  Search, Calendar, User, CheckCircle, XCircle, 
-  Clock, FileText, Filter, RefreshCw 
+  CheckCircle, XCircle, Calendar, Clock, 
+  MapPin, FileText, Search, RefreshCw, Filter
 } from 'lucide-react';
 
 const AdminLogbook = () => {
   const [searchParams] = useSearchParams();
-  const participantId = searchParams.get('participantId'); // Menangkap ID dari URL
+  const participantId = searchParams.get('participantId'); 
 
   const [logbooks, setLogbooks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('Semua');
 
   useEffect(() => {
     fetchLogbooks();
-  }, [participantId]); // Re-fetch jika ID di URL berubah
+  }, [participantId]);
 
   const fetchLogbooks = async () => {
     try {
       setLoading(true);
-      // Memanggil endpoint logbook (Pastikan backend mendukung query param user_id)
       const url = participantId ? `/admin/logbook?user_id=${participantId}` : '/admin/logbook';
       const res = await api.get(url);
       setLogbooks(Array.isArray(res.data) ? res.data : []);
@@ -33,62 +31,52 @@ const AdminLogbook = () => {
     }
   };
 
-  const handleUpdateValidation = async (id, status) => {
+  // FUNGSI UTAMA: Update Status (Approved/Rejected)
+  const handleValidate = async (id, status) => {
+    const confirmMsg = status === 'Disetujui' ? 'Setujui laporan ini?' : 'Tolak laporan ini?';
+    if (!window.confirm(confirmMsg)) return;
+
     try {
       await api.put(`/admin/logbook/${id}/validate`, { status_validasi: status });
-      alert(`Logbook berhasil di-${status}`);
-      fetchLogbooks();
+      // Update state lokal agar instan tanpa reload
+      setLogbooks(logbooks.map(log => log.id === id ? { ...log, status_validasi: status } : log));
     } catch (err) {
-      alert("Gagal update validasi");
+      alert("Gagal melakukan validasi");
     }
   };
 
-  // Logika Filter di Client Side
-  const filteredData = logbooks.filter(log => {
-    const matchesSearch = log.aktivitas?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'Semua' || log.status_validasi === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredData = logbooks.filter(log => 
+    filterStatus === 'Semua' || log.status_validasi === filterStatus
+  );
 
   return (
     <div className="p-8">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="text-left">
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <BookOpen size={28} className="text-blue-600" />
-            Monitoring Logbook 
-            {participantId && <span className="text-blue-600 ml-2">#User-{participantId}</span>}
+      <div className="flex justify-between items-center mb-8 text-left">
+        <div>
+          <h1 className="text-2xl font-black text-gray-800 uppercase tracking-tighter flex items-center gap-3">
+            <CheckCircle className="text-orange-600" size={28} />
+            Validasi Logbook Kegiatan
           </h1>
-          <p className="text-sm text-gray-500">Validasi aktivitas harian peserta magang.</p>
+          <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">
+            {participantId ? `Menampilkan Logbook ID Peserta: ${participantId}` : 'Seluruh Laporan Mahasiswa Magang'}
+          </p>
         </div>
-        
-        <div className="flex gap-3">
-           <div className="relative w-64">
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Cari aktivitas..." 
-              className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <button onClick={fetchLogbooks} className="p-2 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all">
-            <RefreshCw size={20} className="text-gray-600" />
-          </button>
-        </div>
+        <button onClick={fetchLogbooks} className="p-3 bg-white border rounded-xl hover:bg-gray-50 shadow-sm transition-all">
+          <RefreshCw size={20} className="text-gray-600" />
+        </button>
       </div>
 
       {/* FILTER TABS */}
       <div className="flex gap-2 mb-6">
-        {['Semua', 'Pending', 'Valid', 'Ditolak'].map((status) => (
+        {['Semua', 'Menunggu verifikasi', 'Disetujui', 'Ditolak'].map((status) => (
           <button
             key={status}
             onClick={() => setFilterStatus(status)}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${
+            className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
               filterStatus === status 
-              ? 'bg-blue-600 text-white border-blue-600' 
-              : 'bg-white text-gray-500 hover:bg-gray-50'
+              ? 'bg-[#1e293b] text-white shadow-lg' 
+              : 'bg-white text-gray-400 border hover:bg-gray-50'
             }`}
           >
             {status}
@@ -96,78 +84,66 @@ const AdminLogbook = () => {
         ))}
       </div>
 
-      {/* TABLE / LIST LOGBOOK */}
-      <div className="bg-white rounded-[32px] border shadow-sm overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 text-[10px] uppercase font-black tracking-widest text-gray-400 border-b">
+      {/* TABEL APPROVAL */}
+      <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 border-b">
             <tr>
-              <th className="p-5">Tanggal & Peserta</th>
-              <th className="p-5">Aktivitas</th>
-              <th className="p-5">Bukti</th>
-              <th className="p-5 text-center">Status</th>
-              <th className="p-5 text-center">Aksi</th>
+              <th className="p-6">Mahasiswa & Waktu</th>
+              <th className="p-6">Detail Aktivitas</th>
+              <th className="p-6">Lokasi & Berkas</th>
+              <th className="p-6 text-center">Aksi Approval</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan="5" className="p-10 text-center">Memuat data...</td></tr>
+              <tr><td colSpan="4" className="p-20 text-center font-bold text-gray-400">Memuat data logbook...</td></tr>
             ) : filteredData.length > 0 ? filteredData.map((log) => (
-              <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                <td className="p-5">
-                  <div className="flex flex-col text-left">
-                    <span className="font-bold text-gray-800 flex items-center gap-1">
-                      <Calendar size={12} /> {new Date(log.tanggal).toLocaleDateString('id-ID')}
-                    </span>
-                    <span className="text-[10px] text-gray-400 font-medium">ID Mahasiswa: {log.user_id}</span>
+              <tr key={log.id} className="hover:bg-blue-50/20 transition-all">
+                <td className="p-6">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-black text-gray-400 uppercase">ID User: {log.user_id}</span>
+                    <span className="font-bold text-gray-800 flex items-center gap-2"><Calendar size={14}/> {new Date(log.tanggal).toLocaleDateString('id-ID')}</span>
+                    <span className="text-xs text-orange-600 font-bold flex items-center gap-2"><Clock size={14}/> {log.jam || '--:--'} WIB</span>
                   </div>
                 </td>
-                <td className="p-5 max-w-xs text-left">
-                  <p className="text-sm text-gray-700 line-clamp-2">{log.aktivitas}</p>
+                <td className="p-6 max-w-xs">
+                  <p className="font-bold text-gray-800 text-sm uppercase">{log.aktivitas}</p>
+                  <p className="text-xs text-gray-500 mt-1 italic leading-relaxed">"{log.uraian_kegiatan || 'Tidak ada uraian'}"</p>
                 </td>
-                <td className="p-5 text-left">
-                  {log.bukti ? (
-                    <a 
-                      href={`http://localhost:5000/uploads/${log.bukti}`} 
-                      target="_blank" 
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 font-bold hover:underline"
-                    >
-                      <FileText size={14} /> Lihat File
-                    </a>
-                  ) : <span className="text-gray-300 text-xs italic">Tanpa Bukti</span>}
+                <td className="p-6">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-bold text-gray-600 flex items-center gap-2"><MapPin size={14}/> {log.tempat || '-'}</span>
+                    {log.bukti ? (
+                      <a href={`http://localhost:5000/uploads/${log.bukti}`} target="_blank" className="text-[10px] font-black text-blue-600 uppercase flex items-center gap-1 hover:underline">
+                        <FileText size={14} /> Lihat Lampiran
+                      </a>
+                    ) : <span className="text-[10px] text-gray-300 italic">Tanpa Lampiran</span>}
+                  </div>
                 </td>
-                <td className="p-5 text-center">
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${
-                    log.status_validasi === 'Valid' ? 'bg-green-100 text-green-700' : 
-                    log.status_validasi === 'Ditolak' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {log.status_validasi || 'Pending'}
-                  </span>
-                </td>
-                <td className="p-5">
-                  <div className="flex justify-center gap-2">
-                    <button 
-                      onClick={() => handleUpdateValidation(log.id, 'Valid')}
-                      className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-600 hover:text-white transition-all shadow-sm"
-                      title="Validasi Benar"
-                    >
-                      <CheckCircle size={16} />
-                    </button>
-                    <button 
-                      onClick={() => handleUpdateValidation(log.id, 'Ditolak')}
-                      className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
-                      title="Tolak"
-                    >
-                      <XCircle size={16} />
-                    </button>
+                <td className="p-6">
+                  <div className="flex flex-col items-center gap-2">
+                    {log.status_validasi === 'Menunggu verifikasi' || !log.status_validasi ? (
+                      <div className="flex gap-2">
+                        <button onClick={() => handleValidate(log.id, 'Disetujui')} className="p-3 bg-green-50 text-green-600 rounded-2xl hover:bg-green-600 hover:text-white transition-all shadow-sm" title="Approve">
+                          <CheckCircle size={20} />
+                        </button>
+                        <button onClick={() => handleValidate(log.id, 'Ditolak')} className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all shadow-sm" title="Reject">
+                          <XCircle size={20} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tighter ${
+                        log.status_validasi === 'Disetujui' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {log.status_validasi}
+                      </span>
+                    )}
                   </div>
                 </td>
               </tr>
             )) : (
-              <tr>
-                <td colSpan="5" className="p-20 text-center text-gray-400 italic">
-                  Tidak ada aktivitas ditemukan.
-                </td>
-              </tr>
+              <tr><td colSpan="4" className="p-20 text-center text-gray-400 italic">Tidak ada laporan untuk divalidasi.</td></tr>
             )}
           </tbody>
         </table>
