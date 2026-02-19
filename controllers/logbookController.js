@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-=======
+
 const db = require('../config/database');
 
 exports.submitLogbook = async (req, res) => {
@@ -17,4 +16,3 @@ exports.submitLogbook = async (req, res) => {
     }
 };
 
->>>>>>> origin/mariska
