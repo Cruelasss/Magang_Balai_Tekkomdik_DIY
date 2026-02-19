@@ -4,78 +4,68 @@ const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middleware/authMiddleware');
 const db = require('../config/database');
 
-// Pastikan controller dan middleware terload
-if (adminController && authMiddleware) {
+/**
+ * MIDDLEWARE PROTEKSI
+ * Semua rute di bawah ini wajib login (token valid)
+ */
+router.use(authMiddleware);
+
+if (adminController) {
     
-    // --- RUTE STATISTIK & APLIKASI ---
-    router.get('/stats', authMiddleware, adminController.getStats);
-    router.get('/applications', authMiddleware, adminController.getAllApplications);
-    router.delete('/applications/:id', authMiddleware, adminController.deleteApplication);
-    router.put('/applications/:id/status', authMiddleware, adminController.updateStatus);
+    // --- 1. RUTE STATISTIK & APLIKASI (PENDAFTARAN) ---
+    router.get('/stats', adminController.getStats);
+    router.get('/applications', adminController.getAllApplications);
+    router.delete('/applications/:id', adminController.deleteApplication);
+    router.put('/applications/:id/status', adminController.updateStatus);
 
-    // --- RUTE PLOTTING MENTOR ---
-  // UPDATE rute assign-mentor
-router.put('/applications/:id/assign-mentor', authMiddleware, async (req, res) => {
-    const { id } = req.params;
-    const { mentor_id, start, end } = req.body;
+    // --- 2. RUTE PLOTTING MENTOR (ASSIGN) ---
+    router.put('/applications/:id/assign-mentor', async (req, res) => {
+        const { id } = req.params;
+        const { mentor_id, start, end } = req.body;
 
-    try {
-        // PERBAIKAN: SET id_mentor (bukan mentor_id)
-        const query = `
-            UPDATE applications 
-            SET id_mentor = ?, tgl_mulai = ?, tgl_selesai = ?, status = 'Aktif' 
-            WHERE id = ?
-        `;
-        await db.execute(query, [mentor_id, start, end, id]);
-        res.json({ message: "Plotting berhasil!" });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Gagal update database" });
-    }
-});
+        try {
+            // SET id_mentor, tgl_mulai, tgl_selesai, dan status otomatis jadi 'Aktif'
+            const query = `
+                UPDATE applications 
+                SET id_mentor = ?, tgl_mulai = ?, tgl_selesai = ?, status = 'Aktif' 
+                WHERE id = ?
+            `;
+            await db.execute(query, [mentor_id, start, end, id]);
+            res.json({ message: "Plotting mentor berhasil!" });
+        } catch (err) {
+            console.error("Error Plotting:", err);
+            res.status(500).json({ message: "Gagal update database plotting" });
+        }
+    });
 
-// adminRoutes.js pada rute GET /mentors
+    // --- 3. RUTE MANAJEMEN MENTOR ---
+    // Mengambil data mentor beserta beban kerja (count peserta aktif)
+    router.get('/mentors', adminController.getAllMentors);
+    router.post('/mentors', adminController.addMentor);
+    router.delete('/mentors/:id', adminController.deleteMentor);
 
-router.get('/mentors', authMiddleware, async (req, res) => {
-    try {
-        // Jalankan update status dulu agar beban kerja akurat
-        await db.execute(`
-            UPDATE applications SET status = 'Selesai' 
-            WHERE status = 'Aktif' AND tgl_selesai < CURRENT_DATE
-        `);
+    // --- 4. RUTE LOGBOOK (VALIDASI & NOTIFIKASI) ---
+    
+    // Notifikasi Badge Sidebar (Count Pending)
+    router.get('/logbook-count', async (req, res) => {
+        try {
+            const [rows] = await db.execute(
+                "SELECT COUNT(*) as total FROM logbooks WHERE status_validasi = 'Menunggu verifikasi'"
+            );
+            res.json({ count: rows[0].total });
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    });
 
-        const query = `
-            SELECT 
-                m.id, m.nama_pembimbing, m.divisi, m.max_kuota,
-                (SELECT COUNT(*) FROM applications a 
-                 WHERE a.id_mentor = m.id 
-                 AND a.status = 'Aktif') AS beban_kerja
-            FROM mentors m 
-            ORDER BY m.nama_pembimbing ASC
-        `;
-        const [rows] = await db.execute(query);
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
+    // List Logbook untuk tabel Admin (JOIN dengan nama peserta)
+    router.get('/logbook', adminController.getAdminLogbooks);
 
-// Tambahkan rute ini di dalam file adminRoutes.js
-router.get('/logbook-count', authMiddleware, async (req, res) => {
-    try {
-        const [rows] = await db.execute(
-            "SELECT COUNT(*) as total FROM logbooks WHERE status_validasi = 'Menunggu verifikasi'"
-        );
-        res.json({ count: rows[0].total });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
+    // Aksi Validasi (Approve/Reject)
+    router.put('/logbook/:id/validate', adminController.validateLogbook);
 
-router.post('/mentors', authMiddleware, adminController.addMentor);
-router.delete('/mentors/:id', authMiddleware, adminController.deleteMentor);
 } else {
-    console.error("Controller atau Middleware belum siap!");
+    console.error("❌ AdminController tidak terdeteksi. Pastikan file controller sudah benar.");
 }
 
 module.exports = router;

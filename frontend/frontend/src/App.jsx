@@ -6,15 +6,15 @@ import Pendaftar from './pages/Pendaftar';
 import Peserta from './pages/Peserta';
 import Mentors from './pages/Mentors';
 import Arsip from './pages/Arsip';
-import Students from './pages/Students'; // Import halaman baru mahasiswa
+import Students from './pages/Students';
+import AdminLogbook from './pages/AdminLogbook'; // 1. PASTIKAN SUDAH DIIMPORT
 import AdminLayout from './components/AdminLayout';
 
-// REVISI Satpam: Cek token dan opsional cek Role
 const ProtectedRoute = ({ children, allowedRole }) => {
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user'));
 
-  if (!token) return <Navigate to="/" replace />;
+  if (!token || !user) return <Navigate to="/" replace />;
   
   if (allowedRole && user.role.toLowerCase() !== allowedRole.toLowerCase()) {
     return <Navigate to="/" replace />;
@@ -30,7 +30,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
-        {/* REVISI: Rute Khusus Mahasiswa / Peserta */}
+        {/* Rute Peserta */}
         <Route 
           path="/students" 
           element={
@@ -45,6 +45,19 @@ function App() {
         <Route path="/admin/pendaftaran" element={<ProtectedRoute allowedRole="admin"><AdminLayout><Pendaftar /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/peserta" element={<ProtectedRoute allowedRole="admin"><AdminLayout><Peserta /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/mentors" element={<ProtectedRoute allowedRole="admin"><AdminLayout><Mentors /></AdminLayout></ProtectedRoute>} />
+        
+        {/* 2. REVISI: TAMBAHKAN ROUTE LOGBOOK DI SINI */}
+        <Route 
+          path="/admin/logbook" 
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminLayout>
+                <AdminLogbook />
+              </AdminLayout>
+            </ProtectedRoute>
+          } 
+        />
+
         <Route path="/admin/arsip" element={<ProtectedRoute allowedRole="admin"><AdminLayout><Arsip /></AdminLayout></ProtectedRoute>} />
         
         {/* Redirect Typo */}
