@@ -23,12 +23,8 @@ const AdminLogbook = () => {
       setLoading(true);
       const url = participantId ? `/admin/logbook?user_id=${participantId}` : '/admin/logbook';
       const res = await api.get(url);
-      
-      // Memastikan data yang masuk adalah array agar map() tidak error
       const data = Array.isArray(res.data) ? res.data : [];
       setLogbooks(data);
-      
-      // Debug log (Bisa dihapus jika sudah jalan)
       console.log("Data Logbook Terdeteksi:", data.length);
     } catch (err) {
       console.error("Gagal ambil logbook:", err);
@@ -43,7 +39,6 @@ const AdminLogbook = () => {
 
     try {
       await api.put(`/admin/logbook/${id}/validate`, { status_validasi: status });
-      
       setLogbooks(prev => prev.map(log => 
         log.id === id ? { ...log, status_validasi: status } : log
       ));
@@ -52,20 +47,15 @@ const AdminLogbook = () => {
     }
   };
 
-  // REVISI LOGIKA FILTER: Menggunakan .toLowerCase() agar sinkron dengan database
   const filteredData = logbooks.filter(log => {
     if (filterStatus === 'Semua') return true;
-    
-    // Normalisasi status dari DB (Menunggu verifikasi) vs Filter
     const currentStatus = (log.status_validasi || 'Menunggu verifikasi').toLowerCase();
     const targetStatus = filterStatus.toLowerCase();
-    
     return currentStatus === targetStatus;
   });
 
   return (
     <div className="p-8 animate-in fade-in duration-500">
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-8 text-left">
         <div>
           <h1 className="text-2xl font-black text-gray-800 uppercase tracking-tighter flex items-center gap-3">
@@ -84,7 +74,6 @@ const AdminLogbook = () => {
         </button>
       </div>
 
-      {/* FILTER TABS - Menggunakan teks yang sesuai database */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
         {['Semua', 'Menunggu verifikasi', 'Disetujui', 'Ditolak'].map((status) => (
           <button
@@ -101,9 +90,8 @@ const AdminLogbook = () => {
         ))}
       </div>
 
-      {/* TABLE */}
-      <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden text-left">
+        <table className="w-full border-collapse">
           <thead className="bg-gray-50 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 border-b border-gray-100">
             <tr>
               <th className="p-6">Mahasiswa & Waktu</th>
@@ -112,29 +100,30 @@ const AdminLogbook = () => {
               <th className="p-6 text-center">Validasi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50 text-left">
+          <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan="4" className="p-20 text-center font-bold text-gray-300 uppercase tracking-widest animate-pulse">Sinkronisasi Data...</td></tr>
+              <tr><td colSpan="4" className="p-20 text-center font-bold text-gray-300 uppercase tracking-widest">Sinkronisasi Data...</td></tr>
             ) : filteredData.length > 0 ? filteredData.map((log) => (
               <tr key={log.id} className="hover:bg-blue-50/20 transition-all group">
-                <td className="p-6">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm font-black text-gray-800 uppercase leading-none">
-                      {log.nama || `User #${log.user_id}`}
-                    </span>
-                    <span className="text-[10px] font-bold text-blue-500 mt-1 flex items-center gap-1 leading-none uppercase tracking-tighter">
-                      <Calendar size={12}/> {log.tanggal ? new Date(log.tanggal).toLocaleDateString('id-ID') : '-'}
-                    </span>
-                    <span className="text-[10px] text-gray-400 font-bold flex items-center gap-1 leading-none uppercase">
-                      <Clock size={12}/> {log.jam} WIB
-                    </span>
-                  </div>
-                </td>
+<td className="p-6">
+  <div className="flex flex-col gap-1">
+    <span className="text-sm font-black text-gray-800 uppercase leading-none">
+      {/* Gunakan nama_peserta hasil join 3 tabel tadi */}
+      {log.nama_peserta || `User #${log.user_id}`}
+    </span>
+    <span className="text-[10px] font-bold text-blue-500 mt-1 flex items-center gap-1 leading-none uppercase tracking-tighter">
+      <Calendar size={12}/> {log.tanggal ? new Date(log.tanggal).toLocaleDateString('id-ID') : '-'}
+    </span>
+    <span className="text-[10px] text-gray-400 font-bold flex items-center gap-1 leading-none uppercase">
+      <Clock size={12}/> {log.jam} WIB
+    </span>
+  </div>
+</td>
                 <td className="p-6 max-w-xs">
                   <p className="font-black text-gray-800 text-sm uppercase leading-tight group-hover:text-blue-600 transition-colors">{log.aktivitas}</p>
                   <p className="text-xs text-gray-400 mt-1 line-clamp-2 italic font-medium">"{log.uraian_kegiatan}"</p>
                 </td>
-                <td className="p-6 text-left">
+                <td className="p-6">
                   <div className="flex flex-col gap-2">
                     <span className="text-[10px] font-black text-gray-500 flex items-center gap-1 uppercase">
                       <MapPin size={12} className="text-red-500"/> {log.tempat || '-'}
@@ -153,7 +142,6 @@ const AdminLogbook = () => {
                 </td>
                 <td className="p-6">
                   <div className="flex justify-center gap-2">
-                    {/* Normalisasi pengecekan untuk status pending */}
                     {(log.status_validasi || 'Menunggu verifikasi').toLowerCase() === 'menunggu verifikasi' ? (
                       <div className="flex gap-2">
                         <button 
