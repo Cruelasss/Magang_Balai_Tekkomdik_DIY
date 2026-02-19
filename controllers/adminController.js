@@ -113,14 +113,25 @@ exports.addMentor = async (req, res) => {
 };
 
 exports.deleteMentor = async (req, res) => {
+    const { id } = req.params;
     try {
-        await db.execute('DELETE FROM mentors WHERE id = ?', [req.params.id]);
-        res.json({ message: "Mentor berhasil dihapus" });
+        // 1. Set id_mentor menjadi NULL di tabel applications 
+        // agar data mahasiswa (history) tidak hilang tapi ikatan ke mentor lepas
+        await db.execute('UPDATE applications SET id_mentor = NULL WHERE id_mentor = ?', [id]);
+
+        // 2. Baru hapus mentornya
+        const [result] = await db.execute('DELETE FROM mentors WHERE id = ?', [id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Mentor tidak ditemukan" });
+        }
+
+        res.json({ message: "Mentor berhasil dihapus dan relasi telah dibersihkan" });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error(err);
+        res.status(500).json({ message: "Gagal menghapus: " + err.message });
     }
 };
-
 /**
  * 4. MANAJEMEN LOGBOOK (VALIDASI)
  */
@@ -137,20 +148,30 @@ exports.getPendingLogbookCount = async (req, res) => {
     }
 };
 
-// Mengambil semua logbook mahasiswa (dengan JOIN tabel applications untuk mendapatkan Nama)
 // adminController.js
 exports.getAdminLogbooks = async (req, res) => {
     try {
         const { user_id } = req.query;
         
-        // QUERY JOIN: Mengambil data logbook + Nama dari tabel pendaftar/applications
+        /**
+         * LOGIKA JOIN:
+         * 1. Ambil data dari tabel logbooks (l)
+         * 2. Hubungkan ke tabel users (u) berdasarkan l.user_id = u.id
+         * 3. Hubungkan ke tabel applications (a) berdasarkan u.application_id = a.id
+         * Dengan begitu kita bisa mendapatkan kolom a.nama
+         */
         let query = `
-            SELECT l.*, a.nama 
+            SELECT 
+                l.*, 
+                a.nama as nama_peserta,
+                a.instansi,
+                a.jurusan
             FROM logbooks l
-            LEFT JOIN applications a ON l.user_id = a.id
+            JOIN users u ON l.user_id = u.id
+            JOIN applications a ON u.application_id = a.id
         `;
+        
         let params = [];
-
         if (user_id) {
             query += ` WHERE l.user_id = ?`;
             params.push(user_id);
@@ -159,9 +180,10 @@ exports.getAdminLogbooks = async (req, res) => {
         query += ` ORDER BY l.tanggal DESC, l.jam DESC`;
 
         const [rows] = await db.execute(query, params);
-        res.json(rows); // Mengirim array data ke frontend
+        res.json(rows);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Error Get Logbook Details:", error.message);
+        res.status(500).json({ message: "Gagal mengambil data logbook yang sinkron" });
     }
 };
 
