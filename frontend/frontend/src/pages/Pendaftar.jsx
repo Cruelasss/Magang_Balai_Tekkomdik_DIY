@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
-import { Search, CheckCircle, XCircle, Eye, Trash2, X, User, UserPlus, FileText, RefreshCw, GraduationCap } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, Trash2, X, User, UserPlus, FileText, GraduationCap } from 'lucide-react';
 
 const Pendaftaran = () => {
   const [applicants, setApplicants] = useState([]);
@@ -28,12 +28,11 @@ const Pendaftaran = () => {
 
   const sendWhatsAppAccount = (intern, password) => {
     if (!intern || !intern.nomor_wa) {
-      alert("Gagal mengirim WA: Nomor WhatsApp pendaftar tidak ditemukan di database!");
+      alert("Gagal mengirim WA: Nomor WhatsApp pendaftar tidak ditemukan!");
       return;
     }
 
     let cleanNumber = intern.nomor_wa.toString().replace(/[^0-9]/g, '');
-
     if (cleanNumber.startsWith('0')) {
       cleanNumber = '62' + cleanNumber.slice(1);
     } else if (cleanNumber.startsWith('8')) {
@@ -43,10 +42,12 @@ const Pendaftaran = () => {
     const message = encodeURIComponent(
       `Halo *${intern.nama}*!\n\n` +
       `Selamat! Pendaftaran magang kamu di *Balai Tekkomdik DIY* telah diterima.\n` +
+      `Selamat Bergabung Bersama Kami!!!\n\n` +
       `Berikut adalah akun untuk login ke portal peserta:\n\n` +
       `📧 *Email:* ${intern.email}\n` +
       `🔑 *Password:* ${password}\n\n` +
       `Silakan login di: ${window.location.origin}\n` +
+      `Untuk Info Selanjutnya Langsung Balas Saja Pesan Ini Ya :)\n\n` +
       `Terima kasih!`
     );
 
@@ -107,26 +108,24 @@ const Pendaftaran = () => {
 
   return (
     <div className="p-8">
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
         <div className="text-left">
-            <h1 className="text-2xl font-black text-gray-800 uppercase tracking-tighter">Pendaftaran Baru</h1>
-            <p className="text-sm text-gray-400 font-medium">Validasi berkas dan aktivasi akun peserta via WhatsApp.</p>
+          <h1 className="text-2xl font-black text-gray-800 uppercase tracking-tighter">Pendaftaran Baru</h1>
+          <p className="text-sm text-gray-400 font-medium">Validasi berkas dan aktivasi akun peserta via WhatsApp.</p>
         </div>
         <div className="relative w-64">
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          <input type="text" placeholder="Cari nama, instansi, atau jurusan..." className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" onChange={(e) => setSearchTerm(e.target.value)} />
+          <input type="text" placeholder="Cari pendaftar..." className="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all" onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
-      {/* TABEL */}
       <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-black tracking-widest border-b">
             <tr>
               <th className="p-6">Pendaftar</th>
               <th className="p-6">Instansi</th>
-              <th className="p-6">Jurusan</th> {/* KOLOM BARU */}
+              <th className="p-6">Jurusan</th>
               <th className="p-6 text-center">Status</th>
               <th className="p-6 text-center">Aksi</th>
             </tr>
@@ -139,7 +138,7 @@ const Pendaftaran = () => {
                 <td className="p-6 text-gray-500">
                   <div className="flex items-center gap-2">
                     <GraduationCap size={14} className="text-blue-500" />
-                    {app.jurusan}
+                    <span className="truncate max-w-[150px]">{app.jurusan}</span>
                   </div>
                 </td>
                 <td className="p-6 text-center">
@@ -159,11 +158,10 @@ const Pendaftaran = () => {
         </table>
       </div>
 
-      {/* MODAL CONTROL CENTER */}
       {isModalOpen && selectedData && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4 text-left">
           <div className="bg-white rounded-[32px] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in duration-200">
-            <div className="bg-blue-600 p-8 text-white flex justify-between items-center text-left">
+            <div className="bg-blue-600 p-8 text-white flex justify-between items-center">
               <div><h2 className="text-2xl font-black uppercase tracking-tight">{selectedData.nama}</h2><p className="text-xs font-bold opacity-80 uppercase tracking-widest">{selectedData.instansi}</p></div>
               <button onClick={() => setIsModalOpen(false)} className="bg-white/20 p-2 rounded-full hover:bg-white/40 transition-colors"><X size={24}/></button>
             </div>
@@ -183,7 +181,7 @@ const Pendaftaran = () => {
               ))}
             </div>
 
-            <div className="p-10 overflow-y-auto flex-1 bg-white text-left">
+            <div className="p-10 overflow-y-auto flex-1 bg-white">
               {activeTab === 'profil' && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
