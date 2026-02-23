@@ -4,51 +4,66 @@ import api from '../utils/api';
 import logo from '../assets/logo.svg'; 
 import { 
   LayoutDashboard, UserPlus, Users, GraduationCap, 
-  Archive, LogOut, UserCog, BookDashed
+  Archive, LogOut, BookDashed, 
+  Calendar as CalendarIcon 
 } from 'lucide-react';
 
 const Sidebar = () => {
   const location = useLocation();
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingLogbook, setPendingLogbook] = useState(0);
+  const [pendingApps, setPendingApps] = useState(0); // State baru untuk pendaftaran
 
-  const fetchPendingCount = async () => {
+  const fetchCounts = async () => {
     try {
-      const res = await api.get('/admin/logbook-count');
-      setPendingCount(res.data.count);
+      // Mengambil data logbook count dan pendaftaran sekaligus
+      const [logbookRes, appsRes] = await Promise.all([
+        api.get('/admin/logbook-count'),
+        api.get('/admin/applications') // Mengambil semua aplikasi untuk dihitung yang Pending
+      ]);
+      
+      setPendingLogbook(logbookRes.data.count);
+      
+      // Hitung manual data yang statusnya 'Pending' dari list pendaftaran
+      const countPending = appsRes.data.filter(app => app.status === 'Pending').length;
+      setPendingApps(countPending);
     } catch (err) {
       console.error("Gagal mengambil notifikasi:", err);
     }
   };
 
   useEffect(() => {
-    fetchPendingCount();
-    const interval = setInterval(fetchPendingCount, 30000);
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000); // Auto refresh setiap 30 detik
     return () => clearInterval(interval);
   }, []);
 
   const menuItems = [
     { path: '/admin/dashboard', name: 'Dashboard', icon: <LayoutDashboard size={20}/> },
-    { path: '/admin/pendaftaran', name: 'Pendaftaran', icon: <UserPlus size={20}/> },
+    { 
+      path: '/admin/pendaftaran', 
+      name: 'Pendaftaran', 
+      icon: <UserPlus size={20}/>,
+      badge: pendingApps // Tambahkan badge di sini
+    },
     { path: '/admin/peserta', name: 'Data Peserta', icon: <Users size={20}/> },
     { path: '/admin/mentors', name: 'Manajemen Mentor', icon: <GraduationCap size={20}/> },
     { 
       path: '/admin/logbook', 
       name: 'Logbook Peserta', 
       icon: <BookDashed size={20}/>,
-      badge: pendingCount 
+      badge: pendingLogbook 
     },
+    { path: '/admin/calendar', name: 'Kalender Magang', icon: <CalendarIcon size={20}/> },
     { path: '/admin/arsip', name: 'Arsip & Alumni', icon: <Archive size={20}/> },
   ];
 
   return (
-    <div className="w-64 bg-white h-screen border-r border-gray-100 flex flex-col fixed left-0 top-0 z-50 shadow-sm">
+    <div className="w-64 bg-white h-screen border-r border-gray-100 flex flex-col fixed left-0 top-0 z-50 shadow-sm text-left">
       
-      {/* --- BAGIAN LOGO (DIPERBESAR & DIPERTEGAS) --- */}
+      {/* --- BAGIAN LOGO --- */}
       <div className="py-10 flex flex-col items-center justify-center border-b border-gray-50 bg-gradient-to-b from-blue-50/30 to-white">
         <div className="relative mb-4">
-          {/* Efek Lingkaran Glow di Belakang Logo */}
           <div className="absolute inset-0 bg-blue-100 blur-2xl rounded-full opacity-40"></div>
-          
           <img 
             src={logo} 
             alt="Logo" 
@@ -60,7 +75,7 @@ const Sidebar = () => {
           <h1 className="text-lg font-black text-gray-800 uppercase tracking-tighter leading-none">
             Intern<span className="text-blue-600">-Gate</span>
           </h1>
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1">
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-1 text-center">
             Management System
           </p>
         </div>

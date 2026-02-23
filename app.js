@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // Tambahkan ini untuk pathing folder
+const path = require('path');
 require('dotenv').config();
 
 // 1. IMPORT SEMUA ROUTES
@@ -8,48 +8,51 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const logbookRoutes = require('./routes/logbookRoutes');
 const publicRoutes = require('./routes/publicRoutes');
-const applicationRoutes = require('./routes/applicationRoutes'); // <--- Tambahkan rute baru ini
 const studentRoutes = require('./routes/studentRoutes');
-
+// applicationRoutes dihapus/dikomentari agar tidak tabrakan dengan adminRoutes/submit
+// const applicationRoutes = require('./routes/applicationRoutes'); 
 
 const app = express();
 
-// 2. MIDDLEWARE
+// 2. MIDDLEWARE DASAR
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); 
 
-
-// 3. STATIC FOLDER (Sangat Penting!)
-// Ini supaya file PDF yang di-upload bisa dibuka lewat browser/dashboard
+// 3. STATIC FOLDER
+// Akses berkas via: http://localhost:5000/uploads/namafile.pdf
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 4. GUNAKAN ROUTES (DAFTAR ENDPOINT)
-app.use('/api/student', studentRoutes);
+// 4. DAFTAR ENDPOINT (ROUTES)
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
 app.use('/api/logbook', logbookRoutes);
 app.use('/api/public', publicRoutes);
-app.use('/api/applications', applicationRoutes); // <--- Endpoint untuk submit pendaftaran + file
-// 4. GUNAKAN ROUTES
 app.use('/api/student', studentRoutes);
-// ... rute lainnya
 
-// 5. ERROR HANDLING MIDDLEWARE (Tambahkan ini di bawah semua rute)
-// Berfungsi menangkap error jika ada upload yang gagal atau error internal server lainnya
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ 
-        success: false, 
-        message: 'Terjadi kesalahan pada server!',
-        error: err.message 
-    });
-});
+/** * PINTU UTAMA: /api/admin
+ * Di dalam adminRoutes sudah mencakup:
+ * - POST /submit (Pendaftaran magang + nomor_wa)
+ * - PUT /applications/:id/assign-mentor (Plotting + Password Acak)
+ */
+app.use('/api/admin', adminRoutes);
+
 // 5. DEFAULT ROUTE
 app.get('/', (req, res) => {
     res.json({
         message: "Selamat Datang di API TEKKOMDIK INTERN-GATE",
         status: "Server is Running",
-        version: "1.0.0"
+        version: "1.1.0"
+    });
+});
+
+// 6. ERROR HANDLING MIDDLEWARE
+// Menangkap error multer atau error internal lainnya
+app.use((err, req, res, next) => {
+    console.error("Server Error Log:", err.stack);
+    res.status(err.status || 500).json({ 
+        success: false, 
+        message: 'Terjadi kesalahan pada server!',
+        error: err.message 
     });
 });
 

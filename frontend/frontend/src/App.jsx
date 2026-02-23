@@ -6,10 +6,11 @@ import Dashboard from './pages/Dashboard';
 import Pendaftar from './pages/Pendaftar';
 import Peserta from './pages/Peserta';
 import Mentors from './pages/Mentors';
-import AdminLogbook from './pages/AdminLogbook'; // Import halaman logbook admin
+import AdminLogbook from './pages/AdminLogBook'; // Import halaman logbook admin
 import Arsip from './pages/Arsip';
 import Students from './pages/Students'; 
 import AdminLayout from './components/AdminLayout';
+import AdminCalendar from './pages/AdminCalendar';
 
 // Satpam Rute: Proteksi berdasarkan Token & Role
 const ProtectedRoute = ({ children, allowedRole }) => {
@@ -55,6 +56,7 @@ function App() {
         <Route path="/admin/mentors" element={<ProtectedRoute allowedRole="admin"><AdminLayout><Mentors /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/logbook" element={<ProtectedRoute allowedRole="admin"><AdminLayout><AdminLogbook /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/arsip" element={<ProtectedRoute allowedRole="admin"><AdminLayout><Arsip /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/calendar" element={<ProtectedRoute allowedRole="admin"><AdminLayout><AdminCalendar /></AdminLayout></ProtectedRoute>} />
         
         {/* --- REDIRECT & 404 --- */}
         <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
