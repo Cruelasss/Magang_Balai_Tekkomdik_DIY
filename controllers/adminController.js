@@ -1,5 +1,97 @@
 const db = require('../config/database');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto'); // Ditambahkan untuk generate password acak
 
+/**
+ * 1. FIX: ASSIGN MENTOR DENGAN RANDOM PASSWORD & AUTO ACCOUNT
+ */
+exports.assignMentor = async (req, res) => {
+    const { id } = req.params; 
+    const { mentor_id, start, end } = req.body;
+
+    try {
+        // A. Generate Password Acak 8 karakter (hex dari 4 bytes)
+        const rawPassword = crypto.randomBytes(4).toString('hex'); 
+        const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+        // B. Update data di tabel applications
+        await db.execute(`
+            UPDATE applications 
+            SET id_mentor = ?, tgl_mulai = ?, tgl_selesai = ?, status = 'Aktif' 
+            WHERE id = ?
+        `, [mentor_id, start, end, id]);
+
+        // C. Ambil email untuk pembuatan akun
+        const [appData] = await db.execute('SELECT email FROM applications WHERE id = ?', [id]);
+        if (appData.length === 0) return res.status(404).json({ message: "Data tidak ditemukan" });
+        const email = appData[0].email;
+
+        // D. Cek & Buat Akun di tabel users
+        const [existingUser] = await db.execute('SELECT id FROM users WHERE application_id = ?', [id]);
+
+        if (existingUser.length === 0) {
+            await db.execute(
+                'INSERT INTO users (email, password_hash, role, application_id) VALUES (?, ?, ?, ?)',
+                [email, passwordHash, 'Peserta', id]
+            );
+        } else {
+            // Jika akun sudah ada, update passwordnya ke yang baru
+            await db.execute(
+                'UPDATE users SET password_hash = ? WHERE application_id = ?',
+                [passwordHash, id]
+            );
+        }
+
+        // E. Kirim respon password ASLI ke frontend agar bisa dikirim via WA
+        res.json({ 
+            message: "Peserta berhasil diaktifkan!", 
+            generatedPassword: rawPassword 
+        });
+
+    } catch (err) {
+        console.error("Gagal aktivasi peserta:", err);
+        res.status(500).json({ message: "Gagal memproses aktivasi peserta: " + err.message });
+    }
+};
+
+/**
+ * 2. FIX: SUBMIT APPLICATION DENGAN NOMOR WA
+ */
+// ... (Bagian atas file tetap sama)
+
+/**
+ * FIX: SUBMIT APPLICATION DENGAN NOMOR WA
+ * Lokasi: adminController.js
+ */
+exports.submitApplication = async (req, res) => {
+    // TANGKAP SECARA EKSPLISIT DARI req.body
+    const { nama, email, nomor_wa, instansi, jurusan } = req.body;
+    const berkas = req.file ? req.file.filename : null;
+
+    // LOG UNTUK MEMASTIKAN DATA SUDAH SAMPAI DI TERMINAL
+    console.log("-----------------------------------------");
+    console.log("DATA DARI FRONTEND:", req.body);
+    console.log("-----------------------------------------");
+
+    try {
+        // VALIDASI SERVER-SIDE: JIKA nomor_wa NULL, TOLAK!
+        if (!nomor_wa) {
+            return res.status(400).json({ message: "Nomor WhatsApp tidak terdeteksi oleh server!" });
+        }
+
+        const query = `
+            INSERT INTO applications (nama, email, nomor_wa, instansi, jurusan, berkas, status) 
+            VALUES (?, ?, ?, ?, ?, ?, 'Pending')
+        `;
+        
+        await db.execute(query, [nama, email, nomor_wa, instansi, jurusan, berkas]);
+        res.status(201).json({ message: "Berhasil disimpan!" });
+
+    } catch (err) {
+        console.error("DATABASE ERROR:", err.message);
+        res.status(500).json({ message: "Database Error: " + err.message });
+    }
+};
 /**
  * 1. STATISTIK & DASHBOARD
  */
@@ -31,12 +123,13 @@ exports.getStats = async (req, res) => {
     }
 };
 
+
 /**
  * 2. MANAJEMEN PENDAFTARAN (APPLICATIONS)
  */
 exports.getAllApplications = async (req, res) => {
     try {
-        // Sinkronisasi Status Otomatis: Update status menjadi 'Selesai' jika tgl_selesai sudah lewat
+        // 1. Sinkronisasi Status Otomatis: Update status menjadi 'Selesai' jika tgl_selesai sudah lewat
         const autoUpdateQuery = `
             UPDATE applications 
             SET status = 'Selesai' 
@@ -45,14 +138,22 @@ exports.getAllApplications = async (req, res) => {
         `;
         await db.execute(autoUpdateQuery);
 
-        // Ambil data terbaru
-        const [rows] = await db.execute('SELECT * FROM applications ORDER BY created_at DESC');
+        // 2. Ambil data terbaru dengan JOIN ke tabel users
+        // Ini kuncinya agar p.user_id di Frontend tidak 'undefined'
+        const [rows] = await db.execute(`
+            SELECT a.*, u.id as user_id 
+            FROM applications a 
+            LEFT JOIN users u ON a.id = u.application_id 
+            ORDER BY a.created_at DESC
+        `);
+
         res.json(rows);
     } catch (error) {
-        console.error("Gagal sinkronisasi status otomatis:", error.message);
+        console.error("Gagal sinkronisasi data pendaftaran:", error.message);
         res.status(500).json({ message: error.message });
     }
 };
+
 
 exports.updateStatus = async (req, res) => {
     const { id } = req.params;
@@ -200,5 +301,44 @@ exports.validateLogbook = async (req, res) => {
         res.json({ message: 'Status logbook berhasil diperbarui' });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+// controllers/adminController.js
+exports.getCalendarEvents = async (req, res) => {
+    try {
+        // Menggunakan DATE_FORMAT agar database mengirim string YYYY-MM-DD murni
+        const [rows] = await db.execute(`
+            SELECT 
+                nama, 
+                instansi, 
+                DATE_FORMAT(tgl_mulai, '%Y-%m-%d') as start, 
+                DATE_FORMAT(tgl_selesai, '%Y-%m-%d') as end 
+            FROM applications 
+            WHERE status = 'Aktif'
+        `);
+        res.json(rows);
+    } catch (err) {
+        console.error("Database Error:", err);
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// adminController.js
+exports.updateInternDates = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { tgl_mulai, tgl_selesai } = req.body;
+
+        const query = `
+            UPDATE applications 
+            SET tgl_mulai = ?, tgl_selesai = ? 
+            WHERE id = ?
+        `;
+        
+        await db.execute(query, [tgl_mulai, tgl_selesai, id]);
+        res.json({ message: "Periode magang berhasil diperbarui!" });
+    } catch (error) {
+        res.status(500).json({ message: "Gagal memperbarui tanggal: " + error.message });
     }
 };
