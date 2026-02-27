@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/mariska
 const db = require('../config/database');
 
 exports.submitLogbook = async (req, res) => {
@@ -17,9 +14,6 @@ exports.submitLogbook = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-<<<<<<< HEAD
 };
 
-=======
-};
->>>>>>> origin/mariska
+
