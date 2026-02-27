@@ -13,12 +13,7 @@ const Sidebar = () => {
   const [pendingLogbook, setPendingLogbook] = useState(0);
   const [pendingApps, setPendingApps] = useState(0); // State baru untuk pendaftaran
 
-<<<<<<< HEAD
-
-  const fetchPendingCount = async () => {
-=======
   const fetchCounts = async () => {
->>>>>>> origin/mariska
     try {
       // Mengambil data logbook count dan pendaftaran sekaligus
       const [logbookRes, appsRes] = await Promise.all([
