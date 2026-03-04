@@ -4,7 +4,7 @@ import api from '../utils/api';
 import {
   User, School, GraduationCap, Send, CheckCircle2,
   Mail, ArrowLeft, Sparkles, Upload, Phone, Shield, Zap, Edit3,
-  ChevronDown, Award
+  ChevronDown, Rocket, Sun
 } from 'lucide-react';
 import logo from '../assets/logo.svg';
 
@@ -217,7 +217,7 @@ const SuccessScreen = () => (
               Pendaftaran Terkirim!
             </h2>
             <p className="text-gray-500 leading-relaxed text-sm">
-              Data Anda sudah aman di sistem kami. Pantau WhatsApp Anda untuk informasi akun login. Terima kasih!
+              Pantau WhatsApp Anda untuk informasi selanjutnya. Terima kasih!
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 animate-slide-up delay-300">
@@ -325,14 +325,14 @@ const Register = () => {
             {/* Badge */}
             <div className="animate-slide-up delay-100">
               <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 mb-6 border border-white/15">
-                <Sparkles className="w-4 h-4 text-yellow-300 animate-spin-slow" />
-                <span className="text-sm font-bold text-white/80 uppercase tracking-wider">Pendaftaran Magang 2025</span>
+                <Sun className="w-4 h-4 text-yellow-300 animate-spin-slow" />
+                <span className="text-sm font-bold text-white/80 uppercase tracking-wider">Pendaftaran Magang</span>
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               </div>
               <h1 className="text-5xl xl:text-6xl font-black text-white leading-[1.08] mb-5">
-                Mulai Karir<br />
-                <span className="hero-gradient-text">Profesional</span><br />
-                Anda Sekarang
+                Ayo Bergabung<br />
+                <span className="hero-gradient-text">Sekarang</span><br />
+                Andalkan Potensimu!
               </h1>
               <p className="text-blue-200/80 text-base xl:text-lg leading-relaxed max-w-sm">
                 Bergabung dengan program magang Balai Tekkomdik DIY dan dapatkan pengalaman kerja nyata di dunia teknologi pendidikan.
@@ -342,9 +342,9 @@ const Register = () => {
             {/* Features */}
             <div className="space-y-4 animate-slide-up delay-200">
               {[
-                { icon: Shield, title: 'Data Aman & Terproteksi', desc: 'Enkripsi SSL end-to-end', grad: 'from-blue-400 to-cyan-500' },
-                { icon: Zap,    title: 'Notifikasi Via WhatsApp',  desc: 'Akun dikirim dalam 1×24 jam', grad: 'from-yellow-400 to-orange-500' },
-                { icon: Award,  title: 'Sertifikat Resmi',         desc: 'Berstandar industri & diakui', grad: 'from-purple-400 to-pink-500' },
+            
+                { icon: Zap,    title: 'Notifikasi Via WhatsApp',  desc: 'Tunggu Notifikasi Pendaftaran anda via WhatsApp', grad: 'from-yellow-400 to-orange-500' },
+                { icon: Rocket,  title: 'Pengalaman Berharga', desc: 'Dapatkan pengalaman kerja nyata di dunia teknologi pendidikan', grad: 'from-purple-400 to-pink-500' },
               ].map(({ icon: I, title, desc, grad }) => (
                 <div key={title} className="flex items-center gap-4 group cursor-default">
                   <div className={`bg-gradient-to-br ${grad} p-3 rounded-xl shadow-lg shrink-0 group-hover:scale-110 transition-transform duration-300`}>

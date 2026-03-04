@@ -7,6 +7,8 @@ const upload = require('../middleware/uploadMiddleware');
 
 // Gunakan authMiddleware untuk memproteksi rute
 router.use(authMiddleware);
+// Tambahkan baris ini di routes/studentRoutes.js
+router.get('/profile', studentController.getProfile);
 
 // Route Input Kegiatan (dengan upload file)
 router.post('/logbook', upload.single('bukti'), studentController.submitLogbook);

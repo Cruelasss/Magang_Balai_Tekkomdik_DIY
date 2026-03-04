@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Pendaftar from './pages/Pendaftar';
 import Peserta from './pages/Peserta';
 import Mentors from './pages/Mentors';
-import AdminLogbook from './pages/AdminLogBook'; // Import halaman logbook admin
+import AdminLogbook from './pages/AdminLogbook'; // Import halaman logbook admin
 import Arsip from './pages/Arsip';
 import Students from './pages/Students'; 
 import AdminLayout from './components/AdminLayout';
