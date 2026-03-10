@@ -166,16 +166,74 @@ exports.updateStatus = async (req, res) => {
     }
 };
 
+// controllers/adminController.js
+
+/**
+ * DELETE application - Dengan penanganan foreign key constraint
+ */
 exports.deleteApplication = async (req, res) => {
     try {
         const { id } = req.params;
-        await db.execute("DELETE FROM applications WHERE id = ?", [id]);
-        res.json({ message: "Data berhasil dihapus" });
+        
+        console.log("Mencoba hapus application dengan ID:", id);
+
+        // Cek apakah data ada
+        const [checkData] = await db.execute(
+            "SELECT id, berkas, email FROM applications WHERE id = ?", 
+            [id]
+        );
+        
+        if (checkData.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Data tidak ditemukan" 
+            });
+        }
+
+        const application = checkData[0];
+
+        // 1. Cari user_id berdasarkan application_id
+        const [userData] = await db.execute(
+            "SELECT id FROM users WHERE application_id = ?", 
+            [id]
+        );
+
+        if (userData.length > 0) {
+            const userId = userData[0].id;
+            
+            // 2. Hapus semua logbook yang terkait dengan user_id
+            await db.execute("DELETE FROM logbooks WHERE user_id = ?", [userId]);
+            
+            // 3. Hapus user
+            await db.execute("DELETE FROM users WHERE id = ?", [userId]);
+        }
+
+        // 4. Hapus file berkas jika ada (optional - bisa dihapus dari storage)
+        // if (application.berkas) {
+        //     const filePath = path.join(__dirname, '../uploads', application.berkas);
+        //     if (fs.existsSync(filePath)) {
+        //         fs.unlinkSync(filePath);
+        //     }
+        // }
+
+        // 5. Hapus data applications
+        const [result] = await db.execute("DELETE FROM applications WHERE id = ?", [id]);
+        
+        console.log("Hasil delete:", result);
+
+        res.json({ 
+            success: true, 
+            message: "Data peserta beserta seluruh riwayat logbook berhasil dihapus" 
+        });
+        
     } catch (err) {
-        res.status(500).json({ message: "Gagal menghapus data dari database" });
+        console.error("Error deleting application:", err);
+        res.status(500).json({ 
+            success: false, 
+            message: "Gagal menghapus data: " + err.message 
+        });
     }
 };
-
 /**
  * 3. MANAJEMEN MENTOR
  */
