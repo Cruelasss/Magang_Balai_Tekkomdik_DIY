@@ -319,7 +319,7 @@ const Login = () => {
 
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent animate-gradient">
-                  Intern-Gate
+                  Prakerin-Tekkomdik 
                 </h1>
                 <p className="text-gray-500 text-sm mt-1">Balai Tekkomdik DIY</p>
               </div>

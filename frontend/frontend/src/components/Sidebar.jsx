@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
-import logo from '../assets/logo.svg'; 
+import logo from '../assets/logo-1.svg'; 
 import { 
   LayoutDashboard, UserPlus, Users, GraduationCap, 
   Archive, LogOut, BookDashed, 
