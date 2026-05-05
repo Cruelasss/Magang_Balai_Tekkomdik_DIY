@@ -500,7 +500,7 @@ const Register = () => {
                   <img src={logo} alt="InternGate" className="h-10 w-auto" />
                 </div>
               </div>
-              <span className="font-black text-2xl text-white tracking-tight">Intern-Gate</span>
+              <span className="font-black text-2xl text-white tracking-tight">Prakerin-Tekkomdik</span>
             </div>
             <Link
               to="/"
@@ -596,8 +596,7 @@ const Register = () => {
                   </div>
                   <div>
                     <span className="font-black text-xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                      Intern-Gate
-                    </span>
+                      Prakerin-Tekkomdik                    </span>
                     <p className="text-[10px] text-gray-500 mt-0.5">Pendaftaran Magang</p>
                   </div>
                 </div>

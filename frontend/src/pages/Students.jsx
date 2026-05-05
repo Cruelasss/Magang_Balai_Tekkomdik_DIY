@@ -846,7 +846,7 @@ const Students = () => {
               <Activity size={24} className="text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-white tracking-tight">Intern-Gate</h2>
+              <h2 className="text-xl font-black text-white tracking-tight">Prakerin-Tekkomdik</h2>
               <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider">Student Portal</p>
             </div>
           </div>
