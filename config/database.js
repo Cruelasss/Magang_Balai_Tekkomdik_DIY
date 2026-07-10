@@ -7,11 +7,17 @@ const pool = mysql.createPool({
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || 'Mnbvcxz123.',
     database: process.env.DB_NAME || 'tekkomdik_intern_gate',
+    port: process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
     // Tambahkan ini untuk handle masalah timezone jika diperlukan
-    timezone: '+07:00' 
+    timezone: '+07:00',
+    // Tambahkan konfigurasi SSL yang diwajibkan oleh layanan Cloud Database Serverless seperti TiDB/Aiven
+    ssl: {
+        minVersion: 'TLSv1.2',
+        rejectUnauthorized: true
+    }
 });
 
 // Ubah ke mode promise
