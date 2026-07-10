@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import logo from '../assets/logo-1.svg';
+import zadaImg from '../assets/zada.jpg';
+import najihImg from '../assets/najih.jpeg';
+import bayuImg from '../assets/bayu.jpeg';
 import {
   ArrowRight,
   CheckCircle,
@@ -48,32 +51,31 @@ const BENEFITS = [
 
 const PROCEDURE_STEPS = [
   { num: '01', icon: UserCheck, title: 'Registrasi Akun', desc: 'Daftarkan diri Anda dengan mengisi formulir pendaftaran online.', color: 'from-blue-500 to-blue-600' },
-  { num: '02', icon: Briefcase, title: 'Pilih Divisi', desc: 'Tentukan bidang magang yang sesuai dengan minat dan keahlian.', color: 'from-purple-500 to-purple-600' },
-  { num: '03', icon: FileText, title: 'Seleksi Berkas', desc: 'Tim kami akan melakukan verifikasi berkas dan administrasi.', color: 'from-teal-500 to-teal-600' },
-  { num: '04', icon: GraduationCap, title: 'Mulai Magang', desc: 'Bergabung dengan tim dan mulai perjalanan magang Anda.', color: 'from-orange-500 to-orange-600' },
+  { num: '02', icon: FileText, title: 'Seleksi Berkas', desc: 'Tim kami akan melakukan verifikasi berkas dan administrasi.', color: 'from-teal-500 to-teal-600' },
+  { num: '03', icon: GraduationCap, title: 'Mulai Magang', desc: 'Bergabung dengan tim dan mulai perjalanan magang Anda.', color: 'from-orange-500 to-orange-600' },
 ];
 
 const TESTIMONIALS = [
   {
-    name: 'Ahmad Fauzi',
-    role: 'Alumni 2025 - Ilmu Komunikasi',
+    name: 'Bayu Rifqi Efendy',
+    role: 'Alumni 2026 - Komunikasi Penyiaran Islam - Universitas Sains Al-Qur/an',
     content: 'Pengalaman magang di sini sangat berharga. Mentornya baik-baik dan kita diajarkan keterampilan yang sangat bermanfaat.',
     rating: 5,
-    image: 'https://i.pravatar.cc/150?img=1'
+    image: bayuImg
   },
   {
-    name: 'Siti Nurhaliza',
-    role: 'Alumni 2025 - Teknik Informatika',
+    name: 'Najih Ulya Hammi',
+    role: 'Alumni 2026 - Komunikasi Penyiaran Islam - Universitas Sains Al-Qur/an',
     content: 'Lingkungan kerja yang mendukung dan fasilitas lengkap. Sangat direkomendasikan untuk mahasiswa akhir.',
     rating: 5,
-    image: 'https://i.pravatar.cc/150?img=2'
+    image: najihImg
   },
   {
-    name: 'Budi Santoso',
-    role: 'Alumni 2024 - Komunikasi Penyiaran Islam',
-    content: 'Berhasil dapat pekerjaan impian berkat pengalaman dan sertifikat dari program magang ini.',
+    name: 'Zada Wirayuda Sugiarto',
+    role: 'Alumni 2026 - Sistem Informasi - Universitas Pembangunan Nasional Veteran Yogyakarta', 
+    content: 'Program magang ini memberikan pengalaman langsung yang sangat berharga. Saya belajar banyak dari para mentor dan teman-teman saya.',
     rating: 5,
-    image: 'https://i.pravatar.cc/150?img=3'
+    image: zadaImg
   }
 ];
 
@@ -812,7 +814,7 @@ const TestimonialsSection = () => (
           Apa Kata Mereka?
         </h2>
         <p className="text-gray-500 max-w-2xl mx-auto text-lg">
-          Ribuan alumni telah merasakan manfaat bergabung dengan program Prakerin kami
+          Ratusan alumni telah merasakan manfaat bergabung dengan program Prakerin kami
         </p>
       </div>
 

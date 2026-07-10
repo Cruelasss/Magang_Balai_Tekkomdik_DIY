@@ -56,8 +56,12 @@ app.use((err, req, res, next) => {
     });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`✅ Server meluncur di http://localhost:${PORT}`);
-    console.log(`📂 Folder uploads siap diakses di http://localhost:${PORT}/uploads`);
-});
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`✅  http://localhost:${PORT}`);
+        console.log(`📂  http://localhost:${PORT}/uploads`);
+    });
+}
+
+module.exports = app;

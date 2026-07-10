@@ -266,7 +266,7 @@ const AdminLogbook = () => {
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Berkas</p>
                 {log.bukti ? (
                   <a 
-                    href={`http://localhost:5000/uploads/${log.bukti}`} 
+                    href={(log.bukti && log.bukti.startsWith('http')) ? log.bukti : `http://localhost:5000/uploads/${log.bukti}`} 
                     target="_blank" 
                     rel="noreferrer" 
                     className="flex items-center gap-2 p-3 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors group"
@@ -407,7 +407,7 @@ const AdminLogbook = () => {
 
                       {log.bukti && (
                         <a 
-                          href={`http://localhost:5000/uploads/${log.bukti}`} 
+                          href={(log.bukti && log.bukti.startsWith('http')) ? log.bukti : `http://localhost:5000/uploads/${log.bukti}`} 
                           target="_blank" 
                           rel="noreferrer" 
                           onClick={(e) => e.stopPropagation()}

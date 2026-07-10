@@ -220,7 +220,7 @@ const Peserta = () => {
                       <p className="font-bold text-gray-700">{selectedData.jurusan}</p>
                   </div>
                   {selectedData.berkas && (
-                    <a href={`http://localhost:5000/uploads/${selectedData.berkas}`} target="_blank" rel="noreferrer" className="col-span-full flex items-center justify-center gap-4 bg-indigo-50 text-indigo-700 p-8 rounded-[32px] font-black uppercase text-xs tracking-[0.2em] hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                    <a href={(selectedData.berkas && selectedData.berkas.startsWith('http')) ? selectedData.berkas : `http://localhost:5000/uploads/${selectedData.berkas}`} target="_blank" rel="noreferrer" className="col-span-full flex items-center justify-center gap-4 bg-indigo-50 text-indigo-700 p-8 rounded-[32px] font-black uppercase text-xs tracking-[0.2em] hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
                         <FileText size={24}/> Lihat Berkas PDF Pendaftaran
                     </a>
                   )}

@@ -25,7 +25,7 @@ const Arsip = () => {
   const handleViewFile = (fileName) => {
     if (!fileName) return alert("Berkas tidak ditemukan!");
     // Kita arahkan ke folder uploads di backend (port 5000 sesuai server.js kamu)
-    const fileUrl = `http://localhost:5000/uploads/${fileName}`;
+    const fileUrl = (fileName && fileName.startsWith('http')) ? fileName : `http://localhost:5000/uploads/${fileName}`;
     window.open(fileUrl, '_blank');
   };
 

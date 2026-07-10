@@ -7,21 +7,11 @@ const multer = require('multer');
 const path = require('path');
 
 // --- 1. KONFIGURASI MULTER (Wajib diletakkan di atas rute) ---
-// Programmer Note: Multer harus diinisialisasi sebelum digunakan di rute POST
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // Pastikan folder 'uploads' sudah dibuat di root project
-        cb(null, 'uploads/'); 
-    },
-    filename: (req, file, cb) => {
-        // Penamaan file unik untuk mencegah file tertimpa
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 2 * 1024 * 1024 } // Batasi 2MB agar server tidak overload
+    limits: { fileSize: 5 * 1024 * 1024 } // Batasi 5MB
 });
 
 // --- 2. RUTE PUBLIC (Tanpa Auth) ---

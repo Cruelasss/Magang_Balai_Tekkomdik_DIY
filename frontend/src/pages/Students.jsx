@@ -785,7 +785,7 @@ const Students = () => {
                         <StatusBadge status={log.status_validasi} />
                         {log.bukti && (
                           <a 
-                            href={`http://localhost:5000/uploads/${log.bukti}`} 
+                            href={(log.bukti && log.bukti.startsWith('http')) ? log.bukti : `http://localhost:5000/uploads/${log.bukti}`} 
                             target="_blank" 
                             rel="noreferrer"
                             className="flex items-center gap-1 text-[10px] text-purple-600 hover:underline"

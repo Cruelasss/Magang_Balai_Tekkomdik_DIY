@@ -1,7 +1,8 @@
 const db = require('../config/database');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto'); // Ditambahkan untuk generate password acak
-
+const cloudinary = require('../config/cloudinary');
+const streamifier = require('streamifier');
 /**
  * 1. FIX: ASSIGN MENTOR DENGAN RANDOM PASSWORD & AUTO ACCOUNT
  */
@@ -66,7 +67,6 @@ exports.assignMentor = async (req, res) => {
 exports.submitApplication = async (req, res) => {
     // TANGKAP SECARA EKSPLISIT DARI req.body
     const { nama, email, nomor_wa, instansi, jurusan } = req.body;
-    const berkas = req.file ? req.file.filename : null;
 
     // LOG UNTUK MEMASTIKAN DATA SUDAH SAMPAI DI TERMINAL
     console.log("-----------------------------------------");
@@ -79,12 +79,40 @@ exports.submitApplication = async (req, res) => {
             return res.status(400).json({ message: "Nomor WhatsApp tidak terdeteksi oleh server!" });
         }
 
+        let berkasUrl = null;
+
+        // Jika ada file yang diupload, kirim ke Cloudinary
+        if (req.file) {
+            const uploadToCloudinary = (buffer) => {
+                return new Promise((resolve, reject) => {
+                    const cld_upload_stream = cloudinary.uploader.upload_stream(
+                        { folder: "magang_tekkomdik" },
+                        (error, result) => {
+                            if (result) {
+                                resolve(result.secure_url);
+                            } else {
+                                reject(error);
+                            }
+                        }
+                    );
+                    streamifier.createReadStream(buffer).pipe(cld_upload_stream);
+                });
+            };
+
+            try {
+                berkasUrl = await uploadToCloudinary(req.file.buffer);
+            } catch (uploadError) {
+                console.error("Cloudinary Upload Error:", uploadError);
+                return res.status(500).json({ message: "Gagal mengupload berkas ke cloud storage." });
+            }
+        }
+
         const query = `
             INSERT INTO applications (nama, email, nomor_wa, instansi, jurusan, berkas, status) 
             VALUES (?, ?, ?, ?, ?, ?, 'Pending')
         `;
         
-        await db.execute(query, [nama, email, nomor_wa, instansi, jurusan, berkas]);
+        await db.execute(query, [nama, email, nomor_wa, instansi, jurusan, berkasUrl]);
         res.status(201).json({ message: "Berhasil disimpan!" });
 
     } catch (err) {

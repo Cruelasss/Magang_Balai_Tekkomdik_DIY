@@ -5,23 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../config/database');
 
-// Pastikan folder 'uploads' ada, kalau tidak ada buat otomatis
-const uploadDir = 'uploads/';
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
-
-// Konfigurasi Penyimpanan File
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        // Nama file: timestamp-nama_asli.pdf
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s/g, '_'));
-    }
-});
+// Konfigurasi Penyimpanan File (Menggunakan Memory Storage untuk Cloudinary)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
     storage: storage,

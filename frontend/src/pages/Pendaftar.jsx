@@ -190,7 +190,7 @@ const Pendaftaran = () => {
                     <div className="p-5 bg-gray-50 rounded-[20px] border border-gray-100"><p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Jurusan</p><p className="font-bold text-gray-700">{selectedData.jurusan}</p></div>
                   </div>
                   {selectedData.berkas && (
-                    <a href={`http://localhost:5000/uploads/${selectedData.berkas}`} target="_blank" rel="noreferrer" className="flex items-center gap-4 bg-indigo-50 text-indigo-700 p-6 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+                    <a href={(selectedData.berkas && selectedData.berkas.startsWith('http')) ? selectedData.berkas : `http://localhost:5000/uploads/${selectedData.berkas}`} target="_blank" rel="noreferrer" className="flex items-center gap-4 bg-indigo-50 text-indigo-700 p-6 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
                       <FileText size={24}/> Buka PDF Berkas Pendaftaran
                     </a>
                   )}

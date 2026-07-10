@@ -218,7 +218,7 @@ const Mentors = () => {
                     <p className="font-bold text-lg text-gray-700">{selectedIntern.jurusan || '-'}</p>
                   </div>
                   {selectedIntern.berkas && (
-                    <a href={`http://localhost:5000/uploads/${selectedIntern.berkas}`} target="_blank" rel="noreferrer" className="col-span-full flex items-center justify-center gap-4 bg-indigo-50 text-indigo-700 p-7 rounded-[32px] font-black uppercase text-xs tracking-widest hover:bg-indigo-600 hover:text-white shadow-sm mt-4">
+                    <a href={(selectedIntern.berkas && selectedIntern.berkas.startsWith('http')) ? selectedIntern.berkas : `http://localhost:5000/uploads/${selectedIntern.berkas}`} target="_blank" rel="noreferrer" className="col-span-full flex items-center justify-center gap-4 bg-indigo-50 text-indigo-700 p-7 rounded-[32px] font-black uppercase text-xs tracking-widest hover:bg-indigo-600 hover:text-white shadow-sm mt-4">
                       <FileText size={24}/> Buka Dokumen Berkas (PDF)
                     </a>
                   )}

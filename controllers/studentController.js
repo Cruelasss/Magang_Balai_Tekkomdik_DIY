@@ -1,13 +1,40 @@
 const db = require('../config/database');
-
+const cloudinary = require('../config/cloudinary');
+const streamifier = require('streamifier');
 // 1. Simpan Kegiatan Baru
 exports.submitLogbook = async (req, res) => {
     // Tambahkan latitude dan longitude di sini
     const { tanggal, jam, aktivitas, uraian_kegiatan, tempat, latitude, longitude } = req.body;
-    const bukti = req.file ? req.file.filename : null;
     const userId = req.user.id; 
 
     try {
+        let buktiUrl = null;
+
+        if (req.file) {
+            const uploadToCloudinary = (buffer) => {
+                return new Promise((resolve, reject) => {
+                    const cld_upload_stream = cloudinary.uploader.upload_stream(
+                        { folder: "magang_tekkomdik/logbooks" },
+                        (error, result) => {
+                            if (result) {
+                                resolve(result.secure_url);
+                            } else {
+                                reject(error);
+                            }
+                        }
+                    );
+                    streamifier.createReadStream(buffer).pipe(cld_upload_stream);
+                });
+            };
+
+            try {
+                buktiUrl = await uploadToCloudinary(req.file.buffer);
+            } catch (uploadError) {
+                console.error("Cloudinary Upload Error:", uploadError);
+                return res.status(500).json({ message: "Gagal mengupload bukti ke cloud storage." });
+            }
+        }
+
         await db.execute(
             `INSERT INTO logbooks (user_id, tanggal, jam, aktivitas, uraian_kegiatan, tempat, bukti, status_validasi, latitude, longitude) 
              VALUES (?, ?, ?, ?, ?, ?, ?, 'Menunggu verifikasi', ?, ?)`,
@@ -18,7 +45,7 @@ exports.submitLogbook = async (req, res) => {
                 aktivitas, 
                 uraian_kegiatan, 
                 tempat, 
-                bukti,
+                buktiUrl,
                 latitude || null, // Simpan jika ada
                 longitude || null
             ]
