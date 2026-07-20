@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  // Sesuaikan dengan port backend kamu (biasanya 5000)
-  baseURL: 'http://localhost:5000/api', 
+  // Gunakan '/api' saat deploy di Vercel, dan localhost saat dev lokal
+  baseURL: import.meta.env.PROD ? '/api' : 'http://localhost:5000/api', 
 });
 
 // Tambahkan interceptor untuk menyisipkan token otomatis (buat Dashboard Admin)

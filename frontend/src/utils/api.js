@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    // Alamat Backend kamu
-    baseURL: 'http://localhost:5000/api',
+    // Gunakan '/api' di Vercel (karena satu pintu), dan localhost saat mode development lokal
+    baseURL: import.meta.env.PROD ? '/api' : 'http://localhost:5000/api',
     headers: {
         'Content-Type': 'application/json'
     }
