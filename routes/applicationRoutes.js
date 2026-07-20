@@ -43,14 +43,14 @@ router.post('/submit', (req, res) => {
             if (req.file) {
                 const uploadToCloudinary = (buffer) => {
                     return new Promise((resolve, reject) => {
-                        // Ambil ekstensi asli (misal: pdf)
-                        const ext = req.file.originalname.split('.').pop();
+                        // Tambahkan timestamp agar nama file unik, dan sertakan nama aslinya
+                        const uniqueName = `${Date.now()}_${req.file.originalname}`;
                         
                         const cld_upload_stream = cloudinary.uploader.upload_stream(
                             { 
                                 folder: "magang_tekkomdik/pendaftaran", 
-                                resource_type: "auto",
-                                format: ext // Paksa Cloudinary mengenali format aslinya agar bisa dibuka di browser
+                                resource_type: "raw", // Gunakan raw untuk dokumen
+                                public_id: uniqueName // Set public_id dengan ekstensi aslinya (.pdf)
                             },
                             (error, result) => {
                                 if (result) {

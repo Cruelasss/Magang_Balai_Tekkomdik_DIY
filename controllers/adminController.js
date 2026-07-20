@@ -85,12 +85,12 @@ exports.submitApplication = async (req, res) => {
         if (req.file) {
             const uploadToCloudinary = (buffer) => {
                 return new Promise((resolve, reject) => {
-                    const ext = req.file.originalname.split('.').pop();
+                    const uniqueName = `${Date.now()}_${req.file.originalname}`;
                     const cld_upload_stream = cloudinary.uploader.upload_stream(
                         { 
                             folder: "magang_tekkomdik/admin", 
-                            resource_type: "auto",
-                            format: ext
+                            resource_type: "raw",
+                            public_id: uniqueName
                         },
                         (error, result) => {
                             if (result) {
